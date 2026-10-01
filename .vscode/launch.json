@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch Java Swing GUI (Default)",
+            "request": "launch",
+            "mainClass": "Main"
+        },
+        {
+            "type": "java",
+            "name": "Launch Java CLI",
+            "request": "launch",
+            "mainClass": "Main",
+            "args": "--cli"
+        },
+        {
+            "type": "java",
+            "name": "Run 12 Test Cases",
+            "request": "launch",
+            "mainClass": "Main",
+            "args": "--test"
+        }
+    ]
+}
