@@ -71,6 +71,11 @@ public class SwingApp extends JFrame {
     private StatusBadge badgeSearchStatus;
     private JLabel lblMetricOccurrences, lblMetricPositions, lblMetricTime;
 
+    // Search Tracking State (for dynamic result invalidation on query change)
+    private String lastExecutedPattern = null;
+    private boolean lastExecutedCaseSens = true;
+    private boolean isExecutingSearch = false;
+
     // Tables & Models
     private JTable tblMatches, tblBsTrace, tblSaTable, tblPerf, tblTests;
     private DefaultTableModel modelMatches, modelBsTrace, modelSaTable, modelPerf, modelTests;
@@ -424,6 +429,14 @@ public class SwingApp extends JFrame {
         ));
         txtSearchPattern.setPreferredSize(new Dimension(300, 38));
         txtSearchPattern.addActionListener(e -> executeSearch());
+        txtSearchPattern.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { checkQueryChanged(); }
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { checkQueryChanged(); }
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { checkQueryChanged(); }
+        });
 
         JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         pnlButtons.setOpaque(false);
@@ -446,6 +459,7 @@ public class SwingApp extends JFrame {
         chkCaseSensitive.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         chkCaseSensitive.setForeground(COLOR_TEXT_MUTED);
         chkCaseSensitive.setOpaque(false);
+        chkCaseSensitive.addActionListener(e -> checkQueryChanged());
 
         cardSearch.add(pnlSearchHeader, BorderLayout.NORTH);
         cardSearch.add(pnlSearchControls, BorderLayout.CENTER);
@@ -702,89 +716,114 @@ public class SwingApp extends JFrame {
 
         String pattern = txtSearchPattern.getText();
         if (pattern == null || pattern.isEmpty()) {
+            lastExecutedPattern = "";
+            clearPreviousSearchResults();
             badgeSearchStatus.setBadge("EMPTY PATTERN", StatusBadge.Type.DANGER);
-            lblMetricOccurrences.setText("0");
-            lblMetricPositions.setText("None");
-            modelMatches.setRowCount(0);
-            modelBsTrace.setRowCount(0);
             return;
         }
 
         boolean caseSens = chkCaseSensitive.isSelected();
 
-        // 1. Execute actual Suffix Array + Binary Search
-        SearchResult result = PatternSearch.search(currentSuffixArray, pattern, caseSens, 40);
+        isExecutingSearch = true;
+        try {
+            // 1. Execute actual Suffix Array + Binary Search
+            SearchResult result = PatternSearch.search(currentSuffixArray, pattern, caseSens, 40);
 
-        // 2. Execute actual Naive Search for real Performance Comparison
-        PatternSearch.PerformanceComparison comp = PatternSearch.compareSearch(currentSuffixArray, pattern, caseSens, 40);
+            // 2. Execute actual Naive Search for real Performance Comparison
+            PatternSearch.PerformanceComparison comp = PatternSearch.compareSearch(currentSuffixArray, pattern, caseSens, 40);
 
-        // Update Summary Status Badges & Metrics
-        if (result.getStatus() == SearchResult.Status.FOUND) {
-            badgeSearchStatus.setBadge("FOUND", StatusBadge.Type.SUCCESS);
-        } else {
-            badgeSearchStatus.setBadge("NOT FOUND", StatusBadge.Type.DANGER);
-        }
+            // Update Summary Status Badges & Metrics
+            if (result.getStatus() == SearchResult.Status.FOUND) {
+                badgeSearchStatus.setBadge("FOUND", StatusBadge.Type.SUCCESS);
+            } else {
+                badgeSearchStatus.setBadge("NOT FOUND", StatusBadge.Type.DANGER);
+            }
 
-        lblMetricOccurrences.setText(String.valueOf(result.getOccurrencesCount()));
-        lblMetricTime.setText(PerformanceMonitor.formatDurationMs(result.getSearchTimeMs()));
-        lblMetricPositions.setText(result.getPositionsFormatted());
+            lblMetricOccurrences.setText(String.valueOf(result.getOccurrencesCount()));
+            lblMetricTime.setText(PerformanceMonitor.formatDurationMs(result.getSearchTimeMs()));
+            lblMetricPositions.setText(result.getPositionsFormatted());
 
-        // Update Tab 1: Matching Snippets Table
-        modelMatches.setRowCount(0);
-        List<SearchResult.MatchItem> matches = result.getMatches();
-        for (int i = 0; i < matches.size(); i++) {
-            SearchResult.MatchItem item = matches.get(i);
-            modelMatches.addRow(new Object[]{i + 1, item.position, item.lineNumber, item.highlightedSnippet});
-        }
+            // Update Tab 1: Matching Snippets Table
+            modelMatches.setRowCount(0);
+            List<SearchResult.MatchItem> matches = result.getMatches();
+            for (int i = 0; i < matches.size(); i++) {
+                SearchResult.MatchItem item = matches.get(i);
+                modelMatches.addRow(new Object[]{i + 1, item.position, item.lineNumber, item.highlightedSnippet});
+            }
 
-        // Update Tab 2: Binary Search Trace Table
-        modelBsTrace.setRowCount(0);
-        List<SearchResult.BinarySearchStep> steps = result.getBinarySearchSteps();
-        for (SearchResult.BinarySearchStep s : steps) {
-            modelBsTrace.addRow(new Object[]{
-                    s.step, s.phase, s.low, s.high, s.mid, s.suffixPos, s.comparedSuffix, s.comparisonResult, s.action
+            // Update Tab 2: Binary Search Trace Table
+            modelBsTrace.setRowCount(0);
+            List<SearchResult.BinarySearchStep> steps = result.getBinarySearchSteps();
+            for (SearchResult.BinarySearchStep s : steps) {
+                modelBsTrace.addRow(new Object[]{
+                        s.step, s.phase, s.low, s.high, s.mid, s.suffixPos, s.comparedSuffix, s.comparisonResult, s.action
+                });
+            }
+
+            // Update Tab 4: Performance Comparison Table
+            modelPerf.setRowCount(0);
+            modelPerf.addRow(new Object[]{
+                    "Naive String Search",
+                    PerformanceMonitor.formatDurationMs(comp.naiveResult.searchTimeMs),
+                    comp.naiveResult.occurrencesCount,
+                    "O(N * M)"
             });
-        }
+            modelPerf.addRow(new Object[]{
+                    "Suffix Array + Binary Search",
+                    PerformanceMonitor.formatDurationMs(comp.saResult.getSearchTimeMs()),
+                    comp.saResult.getOccurrencesCount(),
+                    "O(M log N)"
+            });
 
-        // Update Tab 4: Performance Comparison Table
-        modelPerf.setRowCount(0);
-        modelPerf.addRow(new Object[]{
-                "Naive String Search",
-                PerformanceMonitor.formatDurationMs(comp.naiveResult.searchTimeMs),
-                comp.naiveResult.occurrencesCount,
-                "O(N * M)"
-        });
-        modelPerf.addRow(new Object[]{
-                "Suffix Array + Binary Search",
-                PerformanceMonitor.formatDurationMs(comp.saResult.getSearchTimeMs()),
-                comp.saResult.getOccurrencesCount(),
-                "O(M log N)"
-        });
+            if (comp.speedupFactor > 1.0) {
+                lblPerfSummary.setText(String.format(
+                        "Result: Suffix Array + Binary Search was %.2fx faster than Naive Search for query \"%s\" on %d characters.",
+                        comp.speedupFactor, pattern, loadedText.length()
+                ));
+            } else {
+                lblPerfSummary.setText(String.format(
+                        "Both algorithms found %d occurrences in under 1 ms for text of length %d.",
+                        result.getOccurrencesCount(), loadedText.length()
+                ));
+            }
 
-        if (comp.speedupFactor > 1.0) {
-            lblPerfSummary.setText(String.format(
-                    "Result: Suffix Array + Binary Search was %.2fx faster than Naive Search for query \"%s\" on %d characters.",
-                    comp.speedupFactor, pattern, loadedText.length()
-            ));
-        } else {
-            lblPerfSummary.setText(String.format(
-                    "Both algorithms found %d occurrences in under 1 ms for text of length %d.",
-                    result.getOccurrencesCount(), loadedText.length()
-            ));
+            this.lastExecutedPattern = pattern;
+            this.lastExecutedCaseSens = caseSens;
+        } finally {
+            isExecutingSearch = false;
         }
     }
 
-    private void clearSearch() {
-        txtSearchPattern.setText("");
-        badgeSearchStatus.setBadge(currentSuffixArray != null ? "INDEXED" : "READY",
-                currentSuffixArray != null ? StatusBadge.Type.SUCCESS : StatusBadge.Type.INFO);
+    private void checkQueryChanged() {
+        if (isExecutingSearch) return;
+        String current = txtSearchPattern.getText();
+        boolean currentCaseSens = chkCaseSensitive.isSelected();
+        if (lastExecutedPattern != null && (!lastExecutedPattern.equals(current) || lastExecutedCaseSens != currentCaseSens)) {
+            clearPreviousSearchResults();
+        }
+    }
+
+    private void clearPreviousSearchResults() {
+        if (isExecutingSearch) return;
+        badgeSearchStatus.setBadge("READY", StatusBadge.Type.INFO);
         lblMetricOccurrences.setText("0");
-        lblMetricTime.setText("0.000 ms");
         lblMetricPositions.setText("None");
+        lblMetricTime.setText("0.000 ms");
         modelMatches.setRowCount(0);
         modelBsTrace.setRowCount(0);
         modelPerf.setRowCount(0);
-        lblPerfSummary.setText("Perform a search to calculate live performance metrics comparing Naive Search vs Suffix Array.");
+        lblPerfSummary.setText("Click 'SEARCH' or press Enter to run pattern search for the current query.");
+        lastExecutedPattern = null;
+    }
+
+    private void clearSearch() {
+        isExecutingSearch = true;
+        try {
+            txtSearchPattern.setText("");
+            clearPreviousSearchResults();
+        } finally {
+            isExecutingSearch = false;
+        }
     }
 
     private void executeTestSuite() {
@@ -987,27 +1026,49 @@ public class SwingApp extends JFrame {
     // STEP PROGRESS INDICATOR COMPONENT
     // =============================================================
     public static class StepIndicatorPanel extends JPanel {
-        private final JLabel lblStep1;
+        public static class StepPillLabel extends JLabel {
+            private Color bgColor;
+
+            public StepPillLabel(String text) {
+                super(text);
+                setFont(new Font("Segoe UI", Font.BOLD, 11));
+                setBorder(new EmptyBorder(5, 12, 5, 12));
+                setOpaque(false);
+            }
+
+            public void setPill(String text, Color bg, Color fg) {
+                setText(text);
+                this.bgColor = bg;
+                setForeground(fg);
+                repaint();
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (bgColor != null) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(bgColor);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                    g2.dispose();
+                }
+                super.paintComponent(g);
+            }
+        }
+
+        private final StepPillLabel lblStep1;
         private final JLabel lblArrow;
-        private final JLabel lblStep2;
+        private final StepPillLabel lblStep2;
 
         public StepIndicatorPanel() {
             setOpaque(false);
-            setLayout(new FlowLayout(FlowLayout.CENTER, 10, 0));
+            setLayout(new FlowLayout(FlowLayout.CENTER, 8, 0));
 
-            lblStep1 = new JLabel("● ① INPUT");
-            lblStep1.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            lblStep1.setOpaque(true);
-            lblStep1.setBorder(new EmptyBorder(4, 12, 4, 12));
-
-            lblArrow = new JLabel("→");
-            lblArrow.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            lblStep1 = new StepPillLabel("STEP 1: INPUT");
+            lblArrow = new JLabel("->");
+            lblArrow.setFont(new Font("Segoe UI", Font.BOLD, 12));
             lblArrow.setForeground(new Color(148, 163, 184));
-
-            lblStep2 = new JLabel("○ ② SEARCH");
-            lblStep2.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            lblStep2.setOpaque(true);
-            lblStep2.setBorder(new EmptyBorder(4, 12, 4, 12));
+            lblStep2 = new StepPillLabel("STEP 2: SEARCH");
 
             add(lblStep1);
             add(lblArrow);
@@ -1018,24 +1079,13 @@ public class SwingApp extends JFrame {
 
         public void setStep(int step) {
             if (step == 1) {
-                // Step 1: ● ① INPUT is active blue pill, Step 2 is pending
-                lblStep1.setText("● ① INPUT");
-                lblStep1.setBackground(new Color(37, 99, 235));
-                lblStep1.setForeground(Color.WHITE);
-
-                lblStep2.setText("○ ② SEARCH");
-                lblStep2.setBackground(new Color(255, 255, 255, 25));
-                lblStep2.setForeground(new Color(148, 163, 184));
+                lblStep1.setPill("STEP 1: INPUT", new Color(37, 99, 235), Color.WHITE);
+                lblStep2.setPill("STEP 2: SEARCH", new Color(255, 255, 255, 30), new Color(148, 163, 184));
             } else {
-                // Step 2: ✓ ① INPUT is green completed pill, Step 2 is active blue pill
-                lblStep1.setText("✓ ① INPUT");
-                lblStep1.setBackground(new Color(22, 163, 74, 200));
-                lblStep1.setForeground(Color.WHITE);
-
-                lblStep2.setText("● ② SEARCH");
-                lblStep2.setBackground(new Color(37, 99, 235));
-                lblStep2.setForeground(Color.WHITE);
+                lblStep1.setPill("STEP 1: INPUT [DONE]", new Color(22, 163, 74, 210), Color.WHITE);
+                lblStep2.setPill("STEP 2: SEARCH", new Color(37, 99, 235), Color.WHITE);
             }
+            revalidate();
             repaint();
         }
     }
