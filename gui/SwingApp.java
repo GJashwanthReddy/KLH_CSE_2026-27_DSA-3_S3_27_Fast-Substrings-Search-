@@ -37,7 +37,6 @@ public class SwingApp extends JFrame {
     // Workflow Card Switcher
     private CardLayout workflowCardLayout;
     private JPanel pnlWorkflowCards;
-    private StepIndicatorPanel stepIndicator;
 
     // Theme Palette (Glassmorphism & Clean Typography)
     private static final Color COLOR_TEXT_MAIN = new Color(15, 23, 42);       // Slate 900
@@ -105,7 +104,6 @@ public class SwingApp extends JFrame {
         initUI();
 
         // Default: Open on Step 1 with default sample pre-loaded in the input area
-        stepIndicator.setStep(1);
         workflowCardLayout.show(pnlWorkflowCards, "STEP1");
     }
 
@@ -171,9 +169,6 @@ public class SwingApp extends JFrame {
         pnlTitleBox.add(titleLabel);
         pnlTitleBox.add(subTitleLabel);
 
-        // Center: Step Progress Indicator
-        stepIndicator = new StepIndicatorPanel();
-
         // Right: Run Test Suite + Window Controls
         JPanel pnlHeaderRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlHeaderRight.setOpaque(false);
@@ -212,7 +207,6 @@ public class SwingApp extends JFrame {
         }
 
         headerCard.add(pnlTitleBox, BorderLayout.WEST);
-        headerCard.add(stepIndicator, BorderLayout.CENTER);
         headerCard.add(pnlHeaderRight, BorderLayout.EAST);
         rootPanel.add(headerCard, BorderLayout.NORTH);
 
@@ -398,7 +392,6 @@ public class SwingApp extends JFrame {
         btnChangeInput.setPreferredSize(new Dimension(150, 36));
         btnChangeInput.setToolTipText("Return to Step 1 to input or upload another document");
         btnChangeInput.addActionListener(e -> {
-            stepIndicator.setStep(1);
             workflowCardLayout.show(pnlWorkflowCards, "STEP1");
         });
         pnlBannerRight.add(btnChangeInput);
@@ -686,7 +679,6 @@ public class SwingApp extends JFrame {
         executeSearch();
 
         // Transition to Step 2
-        stepIndicator.setStep(2);
         workflowCardLayout.show(pnlWorkflowCards, "STEP2");
     }
 
@@ -1020,74 +1012,6 @@ public class SwingApp extends JFrame {
                 return c;
             }
         });
-    }
-
-    // =============================================================
-    // STEP PROGRESS INDICATOR COMPONENT
-    // =============================================================
-    public static class StepIndicatorPanel extends JPanel {
-        public static class StepPillLabel extends JLabel {
-            private Color bgColor;
-
-            public StepPillLabel(String text) {
-                super(text);
-                setFont(new Font("Segoe UI", Font.BOLD, 11));
-                setBorder(new EmptyBorder(5, 12, 5, 12));
-                setOpaque(false);
-            }
-
-            public void setPill(String text, Color bg, Color fg) {
-                setText(text);
-                this.bgColor = bg;
-                setForeground(fg);
-                repaint();
-            }
-
-            @Override
-            protected void paintComponent(Graphics g) {
-                if (bgColor != null) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(bgColor);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                    g2.dispose();
-                }
-                super.paintComponent(g);
-            }
-        }
-
-        private final StepPillLabel lblStep1;
-        private final JLabel lblArrow;
-        private final StepPillLabel lblStep2;
-
-        public StepIndicatorPanel() {
-            setOpaque(false);
-            setLayout(new FlowLayout(FlowLayout.CENTER, 8, 0));
-
-            lblStep1 = new StepPillLabel("STEP 1: INPUT");
-            lblArrow = new JLabel("->");
-            lblArrow.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            lblArrow.setForeground(new Color(148, 163, 184));
-            lblStep2 = new StepPillLabel("STEP 2: SEARCH");
-
-            add(lblStep1);
-            add(lblArrow);
-            add(lblStep2);
-
-            setStep(1);
-        }
-
-        public void setStep(int step) {
-            if (step == 1) {
-                lblStep1.setPill("STEP 1: INPUT", new Color(37, 99, 235), Color.WHITE);
-                lblStep2.setPill("STEP 2: SEARCH", new Color(255, 255, 255, 30), new Color(148, 163, 184));
-            } else {
-                lblStep1.setPill("STEP 1: INPUT [DONE]", new Color(22, 163, 74, 210), Color.WHITE);
-                lblStep2.setPill("STEP 2: SEARCH", new Color(37, 99, 235), Color.WHITE);
-            }
-            revalidate();
-            repaint();
-        }
     }
 
     // =============================================================
