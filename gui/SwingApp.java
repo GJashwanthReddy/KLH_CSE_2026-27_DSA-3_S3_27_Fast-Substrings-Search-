@@ -1,5 +1,4 @@
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.basic.BasicTabbedPaneUI;
@@ -16,9 +15,11 @@ import java.util.List;
  * ============
  * Modern Glassmorphism Desktop UI for Fast Substrings Search Using Suffix Arrays.
  * Features:
- * - Translucent glass-style panels, soft shadows, rounded corners, subtle borders.
- * - Deep navy / slate typography and professional royal blue accents.
- * - High readability for tables, search fields, and statistics.
+ * - Truly semi-transparent window & panels (80-90% opacity) allowing the desktop
+ *   wallpaper/background to subtly show through without any bundled wallpaper images.
+ * - Layered glass cards, soft drop shadows, rounded corners, thin light borders.
+ * - Full window control (custom minimize, maximize/restore, close buttons and window dragging).
+ * - High readability for tables, search field, text areas, and statistics.
  * - 100% preservation of core Suffix Array + Binary Search algorithms.
  * - Strictly project-focused with zero personal/college metadata.
  */
@@ -28,18 +29,23 @@ public class SwingApp extends JFrame {
     private DocumentReader.DocumentMetadata currentMetadata = null;
     private SuffixArray currentSuffixArray = null;
 
+    // Window Translucency & Dragging State
+    private boolean isTranslucentMode = false;
+    private Point dragOffset = null;
+
     // Theme Palette (Glassmorphism & Clean Typography)
     private static final Color COLOR_TEXT_MAIN = new Color(15, 23, 42);       // Slate 900
     private static final Color COLOR_TEXT_MUTED = new Color(100, 116, 139);   // Slate 500
     private static final Color COLOR_TEXT_LIGHT = new Color(148, 163, 184);   // Slate 400
     private static final Color COLOR_BLUE_ACCENT = new Color(37, 99, 235);    // Blue 600
-    private static final Color COLOR_BLUE_HOVER = new Color(29, 78, 216);     // Blue 700
     private static final Color COLOR_GREEN = new Color(22, 163, 74);          // Green 600
     private static final Color COLOR_RED = new Color(220, 38, 38);            // Red 600
-    private static final Color COLOR_BORDER_SUBTLE = new Color(255, 255, 255, 220);
-    private static final Color COLOR_CARD_FILL_TOP = new Color(255, 255, 255, 230);
-    private static final Color COLOR_CARD_FILL_BOTTOM = new Color(255, 255, 255, 195);
-    private static final Color COLOR_TABLE_HEADER = new Color(241, 245, 249);
+
+    // Calibrated Glass Panel Opacity (80–90% for high contrast and readability)
+    private static final Color COLOR_CARD_FILL_TOP = new Color(255, 255, 255, 220);    // ~86% opacity
+    private static final Color COLOR_CARD_FILL_BOTTOM = new Color(255, 255, 255, 195); // ~76% opacity
+    private static final Color COLOR_BORDER_SUBTLE = new Color(255, 255, 255, 230);    // ~90% opacity
+    private static final Color COLOR_TABLE_HEADER = new Color(241, 245, 249, 235);
 
     // Document Statistics Labels
     private JLabel lblFileName, lblFileType, lblFileSize, lblCharCount, lblWordCount, lblLineCount;
@@ -65,6 +71,19 @@ public class SwingApp extends JFrame {
 
     public SwingApp() {
         setTitle("Fast Substrings Search Using Suffix Arrays");
+
+        // Enable per-pixel translucency so the desktop wallpaper subtly shows through
+        try {
+            GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+            if (gd.isWindowTranslucencySupported(GraphicsDevice.WindowTranslucency.PERPIXEL_TRANSLUCENT)) {
+                setUndecorated(true);
+                setBackground(new Color(0, 0, 0, 0));
+                isTranslucentMode = true;
+            }
+        } catch (Throwable ignored) {
+            isTranslucentMode = false;
+        }
+
         setSize(1300, 880);
         setMinimumSize(new Dimension(1080, 720));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -81,18 +100,49 @@ public class SwingApp extends JFrame {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception ignored) {}
 
-        // Root Container with Frosted Glass Backdrop
-        FrostedBackgroundPanel rootPanel = new FrostedBackgroundPanel();
+        // Root Container with Frosted Glass Backdrop (allows desktop to subtly show through)
+        FrostedBackgroundPanel rootPanel = new FrostedBackgroundPanel(isTranslucentMode);
         rootPanel.setLayout(new BorderLayout(0, 10));
-        rootPanel.setBorder(new EmptyBorder(12, 16, 16, 16));
+        rootPanel.setBorder(new EmptyBorder(10, 14, 14, 14));
+
+        // Install window resize listener for undecorated translucent window
+        if (isTranslucentMode) {
+            installWindowResizer(rootPanel);
+        }
 
         // -------------------------------------------------------------
-        // 1. TOP HEADER (Translucent Glass Bar)
+        // 1. TOP HEADER (Translucent Glass Bar with Window Controls)
         // -------------------------------------------------------------
-        GlassCard headerCard = new GlassCard(16, new Color(15, 23, 42, 235), new Color(30, 41, 59, 220),
-                new Color(255, 255, 255, 40), new Color(0, 0, 0, 30));
+        GlassCard headerCard = new GlassCard(16,
+                new Color(15, 23, 42, 215), new Color(30, 41, 59, 205),
+                new Color(255, 255, 255, 45), new Color(0, 0, 0, 25));
         headerCard.setLayout(new BorderLayout(16, 0));
-        headerCard.setBorder(new EmptyBorder(14, 22, 14, 22));
+        headerCard.setBorder(new EmptyBorder(12, 20, 12, 16));
+
+        // Enable window dragging and double-click maximize on header
+        if (isTranslucentMode) {
+            headerCard.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    dragOffset = e.getPoint();
+                }
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (e.getClickCount() == 2) {
+                        toggleMaximize();
+                    }
+                }
+            });
+            headerCard.addMouseMotionListener(new MouseMotionAdapter() {
+                @Override
+                public void mouseDragged(MouseEvent e) {
+                    if (dragOffset != null) {
+                        Point p = e.getLocationOnScreen();
+                        setLocation(p.x - dragOffset.x, p.y - dragOffset.y);
+                    }
+                }
+            });
+        }
 
         JLabel titleLabel = new JLabel("FAST SUBSTRINGS SEARCH USING SUFFIX ARRAYS");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
@@ -107,12 +157,42 @@ public class SwingApp extends JFrame {
         pnlTitleBox.add(titleLabel);
         pnlTitleBox.add(subTitleLabel);
 
+        // Header Actions (Run Test Suite + Window Controls)
+        JPanel pnlHeaderRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        pnlHeaderRight.setOpaque(false);
+
         GlassButton btnHeaderTest = new GlassButton("RUN TEST SUITE", GlassButton.Style.HEADER_NAV);
-        btnHeaderTest.setPreferredSize(new Dimension(150, 36));
+        btnHeaderTest.setPreferredSize(new Dimension(145, 34));
         btnHeaderTest.addActionListener(e -> executeTestSuite());
+        pnlHeaderRight.add(btnHeaderTest);
+
+        if (isTranslucentMode) {
+            JPanel pnlWinControls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+            pnlWinControls.setOpaque(false);
+
+            WindowControlButton btnMin = new WindowControlButton("—", false);
+            btnMin.setToolTipText("Minimize");
+            btnMin.addActionListener(e -> setState(Frame.ICONIFIED));
+
+            WindowControlButton btnMax = new WindowControlButton("□", false);
+            btnMax.setToolTipText("Maximize / Restore");
+            btnMax.addActionListener(e -> toggleMaximize());
+
+            WindowControlButton btnClose = new WindowControlButton("✕", true);
+            btnClose.setToolTipText("Close");
+            btnClose.addActionListener(e -> {
+                dispose();
+                System.exit(0);
+            });
+
+            pnlWinControls.add(btnMin);
+            pnlWinControls.add(btnMax);
+            pnlWinControls.add(btnClose);
+            pnlHeaderRight.add(pnlWinControls);
+        }
 
         headerCard.add(pnlTitleBox, BorderLayout.WEST);
-        headerCard.add(btnHeaderTest, BorderLayout.EAST);
+        headerCard.add(pnlHeaderRight, BorderLayout.EAST);
         rootPanel.add(headerCard, BorderLayout.NORTH);
 
         // -------------------------------------------------------------
@@ -133,7 +213,7 @@ public class SwingApp extends JFrame {
         pnlLeftCol.setOpaque(false);
 
         // Card A: Document Input
-        GlassCard cardInput = new GlassCard(16, COLOR_CARD_FILL_TOP, COLOR_CARD_FILL_BOTTOM, COLOR_BORDER_SUBTLE, new Color(15, 23, 42, 12));
+        GlassCard cardInput = new GlassCard(16, COLOR_CARD_FILL_TOP, COLOR_CARD_FILL_BOTTOM, COLOR_BORDER_SUBTLE, new Color(15, 23, 42, 10));
         cardInput.setLayout(new BorderLayout(0, 10));
         cardInput.setBorder(new EmptyBorder(14, 16, 16, 16));
 
@@ -164,13 +244,14 @@ public class SwingApp extends JFrame {
         txtManualInput = new JTextArea("BANANA BANDANA");
         txtManualInput.setFont(new Font("Consolas", Font.PLAIN, 13));
         txtManualInput.setForeground(COLOR_TEXT_MAIN);
+        txtManualInput.setBackground(new Color(255, 255, 255, 240));
         txtManualInput.setLineWrap(true);
         txtManualInput.setWrapStyleWord(true);
         txtManualInput.setBorder(new EmptyBorder(8, 8, 8, 8));
 
         JScrollPane scrollManual = new JScrollPane(txtManualInput);
         scrollManual.setPreferredSize(new Dimension(360, 120));
-        scrollManual.setBorder(BorderFactory.createLineBorder(new Color(203, 213, 225), 1, true));
+        scrollManual.setBorder(BorderFactory.createLineBorder(new Color(203, 213, 225, 220), 1, true));
 
         GlassButton btnBuildManual = new GlassButton("Build Suffix Array from Text", GlassButton.Style.PRIMARY);
         btnBuildManual.setPreferredSize(new Dimension(360, 36));
@@ -203,7 +284,7 @@ public class SwingApp extends JFrame {
         cardInput.add(pnlInputCenter, BorderLayout.CENTER);
 
         // Card B: Document Statistics
-        GlassCard cardStats = new GlassCard(16, COLOR_CARD_FILL_TOP, COLOR_CARD_FILL_BOTTOM, COLOR_BORDER_SUBTLE, new Color(15, 23, 42, 12));
+        GlassCard cardStats = new GlassCard(16, COLOR_CARD_FILL_TOP, COLOR_CARD_FILL_BOTTOM, COLOR_BORDER_SUBTLE, new Color(15, 23, 42, 10));
         cardStats.setLayout(new BorderLayout(0, 12));
         cardStats.setBorder(new EmptyBorder(14, 16, 16, 16));
 
@@ -245,7 +326,7 @@ public class SwingApp extends JFrame {
         pnlRightCol.setOpaque(false);
 
         // Search Section Glass Card
-        GlassCard cardSearch = new GlassCard(16, COLOR_CARD_FILL_TOP, COLOR_CARD_FILL_BOTTOM, COLOR_BORDER_SUBTLE, new Color(15, 23, 42, 12));
+        GlassCard cardSearch = new GlassCard(16, COLOR_CARD_FILL_TOP, COLOR_CARD_FILL_BOTTOM, COLOR_BORDER_SUBTLE, new Color(15, 23, 42, 10));
         cardSearch.setLayout(new BorderLayout(0, 10));
         cardSearch.setBorder(new EmptyBorder(14, 18, 14, 18));
 
@@ -261,8 +342,9 @@ public class SwingApp extends JFrame {
         txtSearchPattern = new JTextField("ANA");
         txtSearchPattern.setFont(new Font("Consolas", Font.BOLD, 14));
         txtSearchPattern.setForeground(COLOR_TEXT_MAIN);
+        txtSearchPattern.setBackground(new Color(255, 255, 255, 240));
         txtSearchPattern.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(203, 213, 225), 1, true),
+                BorderFactory.createLineBorder(new Color(203, 213, 225, 220), 1, true),
                 new EmptyBorder(6, 10, 6, 10)
         ));
         txtSearchPattern.setPreferredSize(new Dimension(300, 38));
@@ -294,7 +376,7 @@ public class SwingApp extends JFrame {
         cardSearch.add(pnlSearchControls, BorderLayout.CENTER);
         cardSearch.add(chkCaseSensitive, BorderLayout.SOUTH);
 
-        // Search Results Summary Banner (3 Distinct Modern Glass Metric Cards)
+        // Search Results Summary Banner (4 Distinct Modern Glass Metric Cards)
         JPanel pnlSummaryRow = new JPanel(new GridLayout(1, 4, 10, 0));
         pnlSummaryRow.setOpaque(false);
         pnlSummaryRow.setPreferredSize(new Dimension(600, 72));
@@ -330,7 +412,7 @@ public class SwingApp extends JFrame {
         // =============================================================
         // RESULT TABS (Modern Clean Glass Tabs)
         // =============================================================
-        GlassCard cardTabs = new GlassCard(16, COLOR_CARD_FILL_TOP, COLOR_CARD_FILL_BOTTOM, COLOR_BORDER_SUBTLE, new Color(15, 23, 42, 12));
+        GlassCard cardTabs = new GlassCard(16, COLOR_CARD_FILL_TOP, COLOR_CARD_FILL_BOTTOM, COLOR_BORDER_SUBTLE, new Color(15, 23, 42, 10));
         cardTabs.setLayout(new BorderLayout(0, 0));
         cardTabs.setBorder(new EmptyBorder(8, 10, 10, 10));
 
@@ -459,6 +541,100 @@ public class SwingApp extends JFrame {
         rootPanel.add(splitPane, BorderLayout.CENTER);
 
         setContentPane(rootPanel);
+    }
+
+    private void toggleMaximize() {
+        if ((getExtendedState() & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_BOTH) {
+            setExtendedState(Frame.NORMAL);
+        } else {
+            setExtendedState(Frame.MAXIMIZED_BOTH);
+        }
+    }
+
+    private void installWindowResizer(JPanel panel) {
+        MouseAdapter resizer = new MouseAdapter() {
+            private int cursorType = Cursor.DEFAULT_CURSOR;
+            private Point startPos = null;
+            private Rectangle startBounds = null;
+            private final int BORDER_THICKNESS = 8;
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                if ((getExtendedState() & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_BOTH) {
+                    setCursor(Cursor.getDefaultCursor());
+                    return;
+                }
+                int x = e.getX();
+                int y = e.getY();
+                int w = getWidth();
+                int h = getHeight();
+
+                boolean top = y <= BORDER_THICKNESS;
+                boolean bottom = y >= h - BORDER_THICKNESS;
+                boolean left = x <= BORDER_THICKNESS;
+                boolean right = x >= w - BORDER_THICKNESS;
+
+                if (top && left) cursorType = Cursor.NW_RESIZE_CURSOR;
+                else if (top && right) cursorType = Cursor.NE_RESIZE_CURSOR;
+                else if (bottom && left) cursorType = Cursor.SW_RESIZE_CURSOR;
+                else if (bottom && right) cursorType = Cursor.SE_RESIZE_CURSOR;
+                else if (top) cursorType = Cursor.N_RESIZE_CURSOR;
+                else if (bottom) cursorType = Cursor.S_RESIZE_CURSOR;
+                else if (left) cursorType = Cursor.W_RESIZE_CURSOR;
+                else if (right) cursorType = Cursor.E_RESIZE_CURSOR;
+                else cursorType = Cursor.DEFAULT_CURSOR;
+
+                setCursor(Cursor.getPredefinedCursor(cursorType));
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                startPos = e.getLocationOnScreen();
+                startBounds = getBounds();
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (cursorType == Cursor.DEFAULT_CURSOR || startPos == null || startBounds == null) return;
+                Point p = e.getLocationOnScreen();
+                int dx = p.x - startPos.x;
+                int dy = p.y - startPos.y;
+
+                int newX = startBounds.x;
+                int newY = startBounds.y;
+                int newW = startBounds.width;
+                int newH = startBounds.height;
+
+                int minW = getMinimumSize().width;
+                int minH = getMinimumSize().height;
+
+                if (cursorType == Cursor.E_RESIZE_CURSOR || cursorType == Cursor.SE_RESIZE_CURSOR || cursorType == Cursor.NE_RESIZE_CURSOR) {
+                    newW = Math.max(minW, startBounds.width + dx);
+                }
+                if (cursorType == Cursor.S_RESIZE_CURSOR || cursorType == Cursor.SE_RESIZE_CURSOR || cursorType == Cursor.SW_RESIZE_CURSOR) {
+                    newH = Math.max(minH, startBounds.height + dy);
+                }
+                if (cursorType == Cursor.W_RESIZE_CURSOR || cursorType == Cursor.NW_RESIZE_CURSOR || cursorType == Cursor.SW_RESIZE_CURSOR) {
+                    int proposedW = startBounds.width - dx;
+                    if (proposedW >= minW) {
+                        newX = startBounds.x + dx;
+                        newW = proposedW;
+                    }
+                }
+                if (cursorType == Cursor.N_RESIZE_CURSOR || cursorType == Cursor.NW_RESIZE_CURSOR || cursorType == Cursor.NE_RESIZE_CURSOR) {
+                    int proposedH = startBounds.height - dy;
+                    if (proposedH >= minH) {
+                        newY = startBounds.y + dy;
+                        newH = proposedH;
+                    }
+                }
+
+                setBounds(newX, newY, newW, newH);
+            }
+        };
+
+        panel.addMouseListener(resizer);
+        panel.addMouseMotionListener(resizer);
     }
 
     // -------------------------------------------------------------
@@ -705,8 +881,8 @@ public class SwingApp extends JFrame {
     }
 
     private static JPanel createMetricCard(String title, JComponent valueComponent) {
-        GlassCard card = new GlassCard(12, new Color(255, 255, 255, 220), new Color(255, 255, 255, 180),
-                new Color(255, 255, 255, 240), new Color(15, 23, 42, 8));
+        GlassCard card = new GlassCard(12, new Color(255, 255, 255, 215), new Color(255, 255, 255, 185),
+                new Color(255, 255, 255, 240), new Color(15, 23, 42, 6));
         card.setLayout(new BorderLayout(0, 4));
         card.setBorder(new EmptyBorder(8, 12, 8, 12));
 
@@ -721,8 +897,8 @@ public class SwingApp extends JFrame {
 
     private static JScrollPane createTableScrollPane(JTable table) {
         JScrollPane scroll = new JScrollPane(table);
-        scroll.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true));
-        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240, 200), 1, true));
+        scroll.getViewport().setBackground(new Color(255, 255, 255, 240));
         return scroll;
     }
 
@@ -741,13 +917,13 @@ public class SwingApp extends JFrame {
         table.getTableHeader().setPreferredSize(new Dimension(0, 32));
         table.getTableHeader().setReorderingAllowed(false);
 
-        // Subtle alternating row background for clean technical look
+        // High contrast readable rows with subtle alternation
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable tbl, Object val, boolean isSel, boolean hasFocus, int row, int col) {
                 Component c = super.getTableCellRendererComponent(tbl, val, isSel, hasFocus, row, col);
                 if (!isSel) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252));
+                    c.setBackground(row % 2 == 0 ? new Color(255, 255, 255, 248) : new Color(248, 250, 252, 240));
                 }
                 setBorder(new EmptyBorder(0, 6, 0, 6));
                 return c;
@@ -761,17 +937,19 @@ public class SwingApp extends JFrame {
 
     /**
      * FrostedBackgroundPanel:
-     * Ambient cool-slate frosted backdrop simulating depth behind glass panels.
-     * Purely procedural gradient with zero photograph/wallpaper dependencies.
+     * Translucent ambient cool-slate backdrop allowing the user's desktop wallpaper
+     * to subtly show through at calibrated 80-90% effective opacity.
      */
     public static class FrostedBackgroundPanel extends JPanel {
-        public FrostedBackgroundPanel() {
-            setOpaque(true);
+        private final boolean isTranslucent;
+
+        public FrostedBackgroundPanel(boolean isTranslucent) {
+            this.isTranslucent = isTranslucent;
+            setOpaque(false);
         }
 
         @Override
         protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -779,35 +957,39 @@ public class SwingApp extends JFrame {
             int w = getWidth();
             int h = getHeight();
 
-            // Smooth diagonal background wash from soft slate-100 to slate-200
-            GradientPaint gp = new GradientPaint(0, 0, new Color(241, 245, 249), w, h, new Color(226, 232, 240));
-            g2.setPaint(gp);
-            g2.fillRect(0, 0, w, h);
+            // Calibrated alpha: allows desktop wallpaper to subtly show through
+            int alphaTop = isTranslucent ? 135 : 255;
+            int alphaBottom = isTranslucent ? 155 : 255;
 
-            // Subtle ambient light glows (frosted glass atmospheric diffusion)
+            GradientPaint gp = new GradientPaint(
+                    0, 0, new Color(241, 245, 249, alphaTop),
+                    w, h, new Color(226, 232, 240, alphaBottom)
+            );
+            g2.setPaint(gp);
+            g2.fillRoundRect(0, 0, w, h, 18, 18);
+
+            // Subtle atmospheric frosted glow
             RadialGradientPaint rgp1 = new RadialGradientPaint(
                     new Point(w / 4, 0), Math.max(w / 2, 300),
                     new float[]{0.0f, 1.0f},
-                    new Color[]{new Color(219, 234, 254, 120), new Color(241, 245, 249, 0)}
+                    new Color[]{new Color(219, 234, 254, isTranslucent ? 85 : 120), new Color(241, 245, 249, 0)}
             );
             g2.setPaint(rgp1);
-            g2.fillRect(0, 0, w, h);
+            g2.fillRoundRect(0, 0, w, h, 18, 18);
 
-            RadialGradientPaint rgp2 = new RadialGradientPaint(
-                    new Point(w * 3 / 4, h), Math.max(w / 2, 300),
-                    new float[]{0.0f, 1.0f},
-                    new Color[]{new Color(224, 231, 255, 100), new Color(226, 232, 240, 0)}
-            );
-            g2.setPaint(rgp2);
-            g2.fillRect(0, 0, w, h);
+            // Subtle outer window edge highlight
+            g2.setColor(new Color(255, 255, 255, 180));
+            g2.setStroke(new BasicStroke(1.2f));
+            g2.drawRoundRect(1, 1, w - 3, h - 3, 18, 18);
 
             g2.dispose();
+            super.paintComponent(g);
         }
     }
 
     /**
      * GlassCard:
-     * Translucent rounded card container with soft drop shadow and crisp border.
+     * Translucent rounded card container (80-88% opacity) with soft drop shadow and crisp border.
      */
     public static class GlassCard extends JPanel {
         private final int radius;
@@ -948,16 +1130,16 @@ public class SwingApp extends JFrame {
                 }
             } else { // SECONDARY
                 textColor = COLOR_TEXT_MAIN;
-                borderColor = new Color(203, 213, 225);
+                borderColor = new Color(203, 213, 225, 220);
                 if (isPressed) {
-                    topColor = new Color(226, 232, 240);
-                    bottomColor = new Color(203, 213, 225);
+                    topColor = new Color(226, 232, 240, 240);
+                    bottomColor = new Color(203, 213, 225, 240);
                 } else if (isHovered) {
                     topColor = new Color(255, 255, 255, 255);
                     bottomColor = new Color(241, 245, 249, 255);
                 } else {
-                    topColor = new Color(255, 255, 255, 220);
-                    bottomColor = new Color(248, 250, 252, 200);
+                    topColor = new Color(255, 255, 255, 230);
+                    bottomColor = new Color(248, 250, 252, 210);
                 }
             }
 
@@ -978,6 +1160,63 @@ public class SwingApp extends JFrame {
             int textY = (h + fm.getAscent() - fm.getDescent()) / 2;
             g2.drawString(getText(), textX, textY);
 
+            g2.dispose();
+        }
+    }
+
+    /**
+     * WindowControlButton:
+     * Minimalist window controls for undecorated translucent mode (minimize, maximize, close).
+     */
+    public static class WindowControlButton extends JButton {
+        private final boolean isClose;
+        private boolean isHovered = false;
+
+        public WindowControlButton(String text, boolean isClose) {
+            super(text);
+            this.isClose = isClose;
+            setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            setPreferredSize(new Dimension(32, 28));
+            setOpaque(false);
+            setContentAreaFilled(false);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    isHovered = true;
+                    repaint();
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    isHovered = false;
+                    repaint();
+                }
+            });
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            if (isHovered) {
+                g2.setColor(isClose ? new Color(239, 68, 68, 220) : new Color(255, 255, 255, 60));
+                g2.fillRoundRect(0, 0, w, h, 6, 6);
+            }
+
+            g2.setColor(Color.WHITE);
+            FontMetrics fm = g2.getFontMetrics(getFont());
+            int tx = (w - fm.stringWidth(getText())) / 2;
+            int ty = (h + fm.getAscent() - fm.getDescent()) / 2;
+            g2.drawString(getText(), tx, ty);
             g2.dispose();
         }
     }
@@ -1021,22 +1260,22 @@ public class SwingApp extends JFrame {
             Color bg, fg, dot;
             switch (type) {
                 case SUCCESS:
-                    bg = new Color(220, 252, 231);
+                    bg = new Color(220, 252, 231, 230);
                     fg = new Color(21, 128, 61);
                     dot = new Color(22, 163, 74);
                     break;
                 case DANGER:
-                    bg = new Color(254, 226, 226);
+                    bg = new Color(254, 226, 226, 230);
                     fg = new Color(185, 28, 28);
                     dot = new Color(220, 38, 38);
                     break;
                 case INFO:
-                    bg = new Color(224, 242, 254);
+                    bg = new Color(224, 242, 254, 230);
                     fg = new Color(3, 105, 161);
                     dot = new Color(2, 132, 199);
                     break;
                 default:
-                    bg = new Color(241, 245, 249);
+                    bg = new Color(241, 245, 249, 230);
                     fg = new Color(71, 85, 105);
                     dot = new Color(148, 163, 184);
                     break;
@@ -1095,9 +1334,9 @@ public class SwingApp extends JFrame {
                 g2.fill(new RoundRectangle2D.Float(x + 2, y + 2, w - 4, h - 4, 10, 10));
             } else {
                 // Inactive Tab: Subtle translucent glass pill
-                g2.setColor(new Color(255, 255, 255, 140));
+                g2.setColor(new Color(255, 255, 255, 160));
                 g2.fill(new RoundRectangle2D.Float(x + 2, y + 2, w - 4, h - 4, 10, 10));
-                g2.setColor(new Color(226, 232, 240, 180));
+                g2.setColor(new Color(226, 232, 240, 200));
                 g2.draw(new RoundRectangle2D.Float(x + 2, y + 2, w - 4, h - 4, 10, 10));
             }
             g2.dispose();
