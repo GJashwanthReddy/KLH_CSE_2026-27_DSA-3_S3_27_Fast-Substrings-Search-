@@ -3,23 +3,37 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Launch Java Swing GUI (Default)",
+            "name": "Launch Java Swing GUI (Main)",
             "request": "launch",
-            "mainClass": "Main"
+            "mainClass": "Main",
+            "projectName": "DSA_Project",
+            "vmArgs": "-Dfile.encoding=UTF-8"
         },
         {
             "type": "java",
-            "name": "Launch Java CLI",
+            "name": "Launch Java Swing GUI (SwingApp)",
             "request": "launch",
-            "mainClass": "Main",
-            "args": "--cli"
+            "mainClass": "SwingApp",
+            "projectName": "DSA_Project",
+            "vmArgs": "-Dfile.encoding=UTF-8"
         },
         {
             "type": "java",
-            "name": "Run 12 Test Cases",
+            "name": "Run Automated Test Suite",
             "request": "launch",
             "mainClass": "Main",
-            "args": "--test"
+            "projectName": "DSA_Project",
+            "args": "--test",
+            "vmArgs": "-Dfile.encoding=UTF-8"
+        },
+        {
+            "type": "java",
+            "name": "Launch Interactive CLI",
+            "request": "launch",
+            "mainClass": "Main",
+            "projectName": "DSA_Project",
+            "args": "--cli",
+            "vmArgs": "-Dfile.encoding=UTF-8"
         }
     ]
 }

@@ -107,6 +107,17 @@ public class SwingApp extends JFrame {
         workflowCardLayout.show(pnlWorkflowCards, "STEP1");
     }
 
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                SwingApp app = new SwingApp();
+                app.setVisible(true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     private void initUI() {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
