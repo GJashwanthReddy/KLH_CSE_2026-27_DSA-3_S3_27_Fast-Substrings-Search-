@@ -149,20 +149,23 @@ When a pattern appears multiple times (e.g. `ana` in `banana`), binary search id
 ---
 
 ## 14. Test Cases
-The project includes an automated test runner (`tests/TestCases.java`) covering all 12 required test cases:
+The project includes an automated test runner (`tests/TestCases.java`) covering 15 comprehensive test scenarios:
 
-1. **Test 1:** `text = "banana"`, `pattern = "ana"` $\rightarrow$ Found at positions `[1, 3]`.
-2. **Test 2:** `text = "banana"`, `pattern = "xyz"` $\rightarrow$ Not Found.
-3. **Test 3:** `text = "mississippi"`, `pattern = "iss"` $\rightarrow$ Found at positions `[1, 4]`.
-4. **Test 4:** `text = "aaa"`, `pattern = "aa"` $\rightarrow$ Found overlapping matches at positions `[0, 1]`.
-5. **Test 5:** Pattern at beginning of text $\rightarrow$ Found at position `0`.
-6. **Test 6:** Pattern at end of text $\rightarrow$ Found at position `15`.
-7. **Test 7:** Pattern longer than document $\rightarrow$ Not Found.
-8. **Test 8:** Pattern not present in text $\rightarrow$ Not Found.
-9. **Test 9:** Empty pattern input $\rightarrow$ Error handling.
-10. **Test 10:** Large repeated-text document (`5000` `'a'`s) $\rightarrow$ Correct occurrence count.
-11. **Test 11:** Large `.txt` document $\rightarrow$ Found all matches.
-12. **Test 12:** Large `.docx` document $\rightarrow$ Found all matches.
+1. **Test 1:** Existing Substring (`BANANA BANDANA` + `ANA`) $\rightarrow$ Found at positions `[1, 3, 11]`.
+2. **Test 2:** Non-existing Substring (`banana` + `xyz`) $\rightarrow$ Not Found (`NOT_FOUND`).
+3. **Test 3:** Repeated Substring (`mississippi` + `iss`) $\rightarrow$ Found at positions `[1, 4]`.
+4. **Test 4:** Overlapping Substring (`aaa` + `aa`) $\rightarrow$ Found overlapping matches at positions `[0, 1]`.
+5. **Test 5:** Single-Character Query (`banana` + `a`) $\rightarrow$ Found at positions `[1, 3, 5]`.
+6. **Test 6:** Pattern at beginning of text $\rightarrow$ Found at position `0`.
+7. **Test 7:** Pattern at end of text $\rightarrow$ Found at position `15`.
+8. **Test 8:** Full text query (`banana` + `banana`) $\rightarrow$ Found at position `0`.
+9. **Test 9:** Case-sensitive query mismatch $\rightarrow$ Not Found.
+10. **Test 10:** Empty pattern input $\rightarrow$ Error handling (`EMPTY_PATTERN`).
+11. **Test 11:** Pattern longer than document $\rightarrow$ Not Found.
+12. **Test 12:** Unicode Substring Query (`"Hello नमस्ते 世界"` + `"नमस्ते"`) $\rightarrow$ Found at position `6`.
+13. **Test 13:** Large repeated-text document (`5000` `'a'`s) $\rightarrow$ Correct occurrence count (4996).
+14. **Test 14:** Large `.txt` document $\rightarrow$ Found all 20 matches.
+15. **Test 15:** Large `.docx` document $\rightarrow$ Found all 10 matches.
 
 ---
 
@@ -172,17 +175,17 @@ DSA_Project/
 │
 ├── src/
 │   ├── SuffixArray.java        # Core DSA: Prefix-Doubling SA Construction
-│   ├── PatternSearch.java      # Binary Search Pattern Matching
+│   ├── PatternSearch.java      # Binary Search Pattern Matching & Naive Comparison
 │   ├── DocumentReader.java     # Text extraction for .txt & .docx (ZipFile XML DOM)
-│   ├── SearchResult.java       # Container for search status, occurrences, positions
+│   ├── SearchResult.java       # Container for search status, occurrences, positions, steps
 │   ├── PerformanceMonitor.java # Execution timing and memory profiling
-│   └── Main.java               # Launcher entry point (GUI / CLI / Test Runner)
+│   └── Main.java               # Launcher entry point (GUI / CLI / Test Runner / Direct Search)
 │
 ├── gui/
-│   └── SwingApp.java           # Standalone Java Swing GUI Application
+│   └── SwingApp.java           # Standalone Java Swing GUI Application (5 Interactive Tabs)
 │
 ├── tests/
-│   └── TestCases.java          # Test suite for 12 test cases
+│   └── TestCases.java          # Automated suite with 15 test cases
 │
 ├── sample_documents/
 │   ├── sample.txt
@@ -204,23 +207,27 @@ DSA_Project/
 
 ### Step 1: Compile the Java Project
 ```powershell
-mkdir -p bin
-javac -d bin src/*.java gui/*.java tests/*.java
+javac -encoding UTF-8 -d bin src/*.java gui/*.java tests/*.java
 ```
 
 ### Step 2: Run the Application
 
-#### Option A: Launch Standalone Swing GUI (Recommended for Review)
+#### Option A: Launch Standalone Swing GUI (Default & Recommended)
 ```powershell
 java -cp bin Main
 ```
 
-#### Option B: Launch Interactive CLI
+#### Option B: Run Direct Search with Trace Output
+```powershell
+java -cp bin Main "BANANA BANDANA" "ANA"
+```
+
+#### Option C: Launch Interactive CLI
 ```powershell
 java -cp bin Main --cli
 ```
 
-#### Option C: Run All 12 Automated Unit Tests
+#### Option D: Run All 15 Automated Unit Tests
 ```powershell
 java -cp bin Main --test
 ```
@@ -230,25 +237,29 @@ java -cp bin Main --test
 ## 17. Sample Output
 
 ```
-======================================================================
-  RUNNING ALL 12 AUTOMATED JAVA DSA TEST CASES
-======================================================================
-[PASS] Test 1: banana + ana                : Positions: [1, 3]
-[PASS] Test 2: banana + xyz                : Status: NOT_FOUND
-[PASS] Test 3: mississippi + iss           : Positions: [1, 4]
-[PASS] Test 4: Overlapping aaa + aa        : Positions: [0, 1]
-[PASS] Test 5: Pattern at beginning        : Pos: [0]
-[PASS] Test 6: Pattern at end              : Pos: [15]
-[PASS] Test 7: Pattern longer than text    : Status: NOT_FOUND
-[PASS] Test 8: Pattern not present         : Status: NOT_FOUND
-[PASS] Test 9: Empty pattern handling      : Status: EMPTY_PATTERN
-[PASS] Test 10: Large repeated text (5000 'a's) : Occurrences: 4996
-[PASS] Test 11: Large .txt Document        : Found 20 matches.
-[PASS] Test 12: Large .docx Document       : Found 10 matches.
-
-----------------------------------------------------------------------
-TEST RESULTS: 12 / 12 PASSED
-----------------------------------------------------------------------
+=========================================================================================================
+  RUNNING COMPREHENSIVE AUTOMATED JAVA DSA TEST SUITE
+=========================================================================================================
+Test   | Test Name                    | Query        | Expected                 | Actual                   | Status  
+---------------------------------------------------------------------------------------------------------
+1      | Existing Substring           | ANA          | 3 matches at [1, 3, 11]  | 3 matches at [1, 3, 11]  | [PASS]  
+2      | Non-existing Substring       | xyz          | 0 matches (NOT_FOUND)    | 0 matches (NOT_FOUND)    | [PASS]  
+3      | Repeated Substring           | iss          | 2 matches at [1, 4]      | 2 matches at [1, 4]      | [PASS]  
+4      | Overlapping Substring        | aa           | 2 matches at [0, 1]      | 2 matches at [0, 1]      | [PASS]  
+5      | Single-Character Query       | a            | 3 matches at [1, 3, 5]   | 3 matches at [1, 3, 5]   | [PASS]  
+6      | Beginning of Text            | algorithm    | 1 match at [0]           | 1 match at [0]           | [PASS]  
+7      | End of Text                  | structure    | 1 match at [15]          | 1 match at [15]          | [PASS]  
+8      | Full Text Query              | banana       | 1 match at [0]           | 1 match at [0]           | [PASS]  
+9      | Case-Sensitive Query         | banana       | 0 matches (NOT_FOUND)    | 0 matches (NOT_FOUND)    | [PASS]  
+10     | Empty Query Handling         | (empty)      | EMPTY_PATTERN error      | EMPTY_PATTERN            | [PASS]  
+11     | Pattern Longer than Text     | this pattern... | 0 matches (NOT_FOUND)    | 0 matches (NOT_FOUND)    | [PASS]  
+12     | Unicode Substring Query      | नमस्ते        | 1 match at [6]           | 1 match at [6]           | [PASS]  
+13     | Large Repeated Text          | aaaaa        | 4996 matches             | 4996 matches             | [PASS]  
+14     | Large .txt Document          | machine learning | 20 matches               | 20 matches               | [PASS]  
+15     | Large .docx Document         | Suffix Array | 10 matches               | 10 matches               | [PASS]  
+---------------------------------------------------------------------------------------------------------
+TEST RESULTS: Total = 15 | Passed = 15 | Failed = 0
+=========================================================================================================
 ```
 
 ---

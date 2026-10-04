@@ -24,14 +24,17 @@ public class DocumentReader {
         public final String fileSizeFormatted;
         public final int characterCount;
         public final int wordCount;
+        public final int lineCount;
 
-        public DocumentMetadata(String fileName, String fileType, long fileSizeBytes, String fileSizeFormatted, int characterCount, int wordCount) {
+        public DocumentMetadata(String fileName, String fileType, long fileSizeBytes, String fileSizeFormatted,
+                                int characterCount, int wordCount, int lineCount) {
             this.fileName = fileName;
             this.fileType = fileType;
             this.fileSizeBytes = fileSizeBytes;
             this.fileSizeFormatted = fileSizeFormatted;
             this.characterCount = characterCount;
             this.wordCount = wordCount;
+            this.lineCount = lineCount;
         }
     }
 
@@ -73,8 +76,8 @@ public class DocumentReader {
 
     public static ReadResult readManualText(String text, String name) {
         String safeName = (name == null || name.isEmpty()) ? "Manual Text Entry" : name;
-        long bytes = text.getBytes(StandardCharsets.UTF_8).length;
-        DocumentMetadata metadata = calculateMetadata(text, safeName, "Manual Text", bytes);
+        long bytes = text != null ? text.getBytes(StandardCharsets.UTF_8).length : 0;
+        DocumentMetadata metadata = calculateMetadata(text, safeName, "Manual Input", bytes);
         return new ReadResult(text, metadata);
     }
 
@@ -109,7 +112,6 @@ public class DocumentReader {
 
                 for (int i = 0; i < paragraphNodes.getLength(); i++) {
                     Node pNode = paragraphNodes.item(i);
-                    NodeList textNodes = pNode.getChildNodes();
                     StringBuilder pBuilder = new StringBuilder();
                     extractTextFromNode(pNode, pBuilder);
 
@@ -146,14 +148,22 @@ public class DocumentReader {
     public static DocumentMetadata calculateMetadata(String text, String fileName, String fileType, long fileSizeBytes) {
         int charCount = text == null ? 0 : text.length();
         int wordCount = 0;
+        int lineCount = 0;
 
-        if (text != null && !text.trim().isEmpty()) {
-            String[] words = text.trim().split("\\s+");
-            wordCount = words.length;
+        if (text != null && !text.isEmpty()) {
+            lineCount = 1;
+            for (int i = 0; i < text.length(); i++) {
+                if (text.charAt(i) == '\n') lineCount++;
+            }
+
+            if (!text.trim().isEmpty()) {
+                String[] words = text.trim().split("\\s+");
+                wordCount = words.length;
+            }
         }
 
         String formattedSize = formatFileSize(fileSizeBytes);
-        return new DocumentMetadata(fileName, fileType, fileSizeBytes, formattedSize, charCount, wordCount);
+        return new DocumentMetadata(fileName, fileType, fileSizeBytes, formattedSize, charCount, wordCount, lineCount);
     }
 
     public static String formatFileSize(long sizeBytes) {

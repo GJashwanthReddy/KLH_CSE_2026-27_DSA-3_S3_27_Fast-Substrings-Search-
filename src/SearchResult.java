@@ -5,11 +5,12 @@ import java.util.List;
  * SearchResult.java
  * =================
  * Data container representing the output of a pattern search query.
- * Contains match status, occurrences count, text positions, snippets, and step-by-step trace steps.
+ * Contains match status, occurrences count, text positions, snippets, and real binary search trace steps.
  */
 public class SearchResult {
 
     public enum Status {
+        INDEXED,
         FOUND,
         NOT_FOUND,
         EMPTY_PATTERN,
@@ -35,21 +36,24 @@ public class SearchResult {
         public final int step;
         public final String phase;
         public final int low;
-        public final int mid;
         public final int high;
+        public final int mid;
         public final int suffixPos;
-        public final String suffixPreview;
-        public final String comparison;
+        public final String comparedSuffix;
+        public final String comparisonResult;
+        public final String action;
 
-        public BinarySearchStep(int step, String phase, int low, int mid, int high, int suffixPos, String suffixPreview, String comparison) {
+        public BinarySearchStep(int step, String phase, int low, int high, int mid, int suffixPos,
+                                String comparedSuffix, String comparisonResult, String action) {
             this.step = step;
             this.phase = phase;
             this.low = low;
-            this.mid = mid;
             this.high = high;
+            this.mid = mid;
             this.suffixPos = suffixPos;
-            this.suffixPreview = suffixPreview;
-            this.comparison = comparison;
+            this.comparedSuffix = comparedSuffix;
+            this.comparisonResult = comparisonResult;
+            this.action = action;
         }
     }
 
@@ -79,4 +83,19 @@ public class SearchResult {
     public List<BinarySearchStep> getBinarySearchSteps() { return binarySearchSteps; }
     public double getSearchTimeMs() { return searchTimeMs; }
     public String getErrorMessage() { return errorMessage; }
+
+    public String getPositionsFormatted() {
+        if (positions.length == 0) return "None";
+        StringBuilder sb = new StringBuilder("[");
+        int limit = Math.min(positions.length, 50);
+        for (int i = 0; i < limit; i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(positions[i]);
+        }
+        if (positions.length > limit) {
+            sb.append(", ... (+").append(positions.length - limit).append(" more)");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
 }

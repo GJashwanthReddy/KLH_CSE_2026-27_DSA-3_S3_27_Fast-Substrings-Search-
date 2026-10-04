@@ -7,10 +7,48 @@ import java.util.List;
  * ==================
  * Implements Binary Search over the Suffix Array to find all matching occurrences of a pattern.
  * Performs pure character-by-character comparison via SuffixArray.compareSuffixWithPattern().
- * NO String.contains(), String.indexOf(), or regex are used.
+ * NO String.contains(), String.indexOf(), or regex are used for the core search.
+ * Also includes a genuine Naive Search implementation for empirical performance benchmarking.
  */
 public class PatternSearch {
 
+    public static class NaiveSearchResult {
+        public final int occurrencesCount;
+        public final int[] positions;
+        public final double searchTimeMs;
+
+        public NaiveSearchResult(int occurrencesCount, int[] positions, double searchTimeMs) {
+            this.occurrencesCount = occurrencesCount;
+            this.positions = positions == null ? new int[0] : positions;
+            this.searchTimeMs = searchTimeMs;
+        }
+    }
+
+    public static class PerformanceComparison {
+        public final String pattern;
+        public final int textLength;
+        public final SearchResult saResult;
+        public final NaiveSearchResult naiveResult;
+        public final double speedupFactor;
+
+        public PerformanceComparison(String pattern, int textLength, SearchResult saResult,
+                                     NaiveSearchResult naiveResult) {
+            this.pattern = pattern;
+            this.textLength = textLength;
+            this.saResult = saResult;
+            this.naiveResult = naiveResult;
+            if (saResult.getSearchTimeMs() > 0) {
+                this.speedupFactor = naiveResult.searchTimeMs / saResult.getSearchTimeMs();
+            } else {
+                this.speedupFactor = 1.0;
+            }
+        }
+    }
+
+    /**
+     * Binary Search pattern matching over Suffix Array.
+     * Records all real binary search steps for visualization.
+     */
     public static SearchResult search(SuffixArray sa, String pattern, boolean caseSensitive, int snippetContext) {
         long startTime = System.nanoTime();
 
@@ -49,24 +87,29 @@ public class PatternSearch {
             int mid = low + (high - low) / 2;
             int pos = saArr[mid];
 
-            String preview = getSuffixPreview(text, pos, 50);
+            String preview = getSuffixPreview(text, pos, 40);
             int cmpRes = targetSa.compareSuffixWithPattern(pos, searchPattern);
 
-            String cmpDesc;
+            String cmpResultText;
+            String actionText;
+
             if (cmpRes == 0) {
-                cmpDesc = "Pattern matches Suffix prefix! (Searching left for lower bound)";
+                cmpResultText = "Pattern == Suffix Prefix";
+                actionText = "Match found; record L=" + mid + " and search left (high=" + (mid - 1) + ")";
                 lowerBound = mid;
                 high = mid - 1; // Keep searching LEFT for first match
             } else if (cmpRes < 0) {
-                cmpDesc = "Pattern < Suffix (Go Left)";
+                cmpResultText = "Pattern < Suffix";
+                actionText = "Go Left (high=" + (mid - 1) + ")";
                 high = mid - 1;
             } else {
-                cmpDesc = "Pattern > Suffix (Go Right)";
+                cmpResultText = "Pattern > Suffix";
+                actionText = "Go Right (low=" + (mid + 1) + ")";
                 low = mid + 1;
             }
 
             stepsTrace.add(new SearchResult.BinarySearchStep(
-                stepCounter++, "Lower Bound Search", low, mid, high, pos, preview, cmpDesc
+                stepCounter++, "Lower Bound Search", low, high, mid, pos, preview, cmpResultText, actionText
             ));
         }
 
@@ -87,24 +130,29 @@ public class PatternSearch {
             int mid = low + (high - low) / 2;
             int pos = saArr[mid];
 
-            String preview = getSuffixPreview(text, pos, 50);
+            String preview = getSuffixPreview(text, pos, 40);
             int cmpRes = targetSa.compareSuffixWithPattern(pos, searchPattern);
 
-            String cmpDesc;
+            String cmpResultText;
+            String actionText;
+
             if (cmpRes == 0) {
-                cmpDesc = "Pattern matches Suffix! (Searching right for upper bound)";
+                cmpResultText = "Pattern == Suffix Prefix";
+                actionText = "Match found; record R=" + mid + " and search right (low=" + (mid + 1) + ")";
                 upperBound = mid;
                 low = mid + 1; // Keep searching RIGHT for last match
             } else if (cmpRes < 0) {
-                cmpDesc = "Pattern < Suffix (Go Left)";
+                cmpResultText = "Pattern < Suffix";
+                actionText = "Go Left (high=" + (mid - 1) + ")";
                 high = mid - 1;
             } else {
-                cmpDesc = "Pattern > Suffix (Go Right)";
+                cmpResultText = "Pattern > Suffix";
+                actionText = "Go Right (low=" + (mid + 1) + ")";
                 low = mid + 1;
             }
 
             stepsTrace.add(new SearchResult.BinarySearchStep(
-                stepCounter++, "Upper Bound Search", low, mid, high, pos, preview, cmpDesc
+                stepCounter++, "Upper Bound Search", low, high, mid, pos, preview, cmpResultText, actionText
             ));
         }
 
@@ -146,6 +194,63 @@ public class PatternSearch {
 
         double searchTimeMs = (System.nanoTime() - startTime) / 1_000_000.0;
         return new SearchResult(SearchResult.Status.FOUND, count, positions, matches, stepsTrace, searchTimeMs, null);
+    }
+
+    /**
+     * Naive Substring Search Algorithm (Brute-force sliding window).
+     * Compares character-by-character at every index without using String.indexOf or regex.
+     * Used for empirical performance comparison against Suffix Array + Binary Search.
+     */
+    public static NaiveSearchResult naiveSearch(String text, String pattern, boolean caseSensitive) {
+        long startTime = System.nanoTime();
+
+        if (text == null || pattern == null || pattern.isEmpty() || text.length() < pattern.length()) {
+            double durationMs = (System.nanoTime() - startTime) / 1_000_000.0;
+            return new NaiveSearchResult(0, new int[0], durationMs);
+        }
+
+        int n = text.length();
+        int m = pattern.length();
+        List<Integer> matchPositions = new ArrayList<>();
+
+        for (int i = 0; i <= n - m; i++) {
+            boolean match = true;
+            for (int j = 0; j < m; j++) {
+                char cText = text.charAt(i + j);
+                char cPat = pattern.charAt(j);
+
+                if (!caseSensitive) {
+                    cText = Character.toLowerCase(cText);
+                    cPat = Character.toLowerCase(cPat);
+                }
+
+                if (cText != cPat) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                matchPositions.add(i);
+            }
+        }
+
+        int[] positions = new int[matchPositions.size()];
+        for (int k = 0; k < matchPositions.size(); k++) {
+            positions[k] = matchPositions.get(k);
+        }
+
+        double durationMs = (System.nanoTime() - startTime) / 1_000_000.0;
+        return new NaiveSearchResult(positions.length, positions, durationMs);
+    }
+
+    /**
+     * Executes both Suffix Array + Binary Search and Naive Search on the same text and query,
+     * measuring the actual real-time execution difference.
+     */
+    public static PerformanceComparison compareSearch(SuffixArray sa, String pattern, boolean caseSensitive, int snippetContext) {
+        SearchResult saRes = search(sa, pattern, caseSensitive, snippetContext);
+        NaiveSearchResult naiveRes = naiveSearch(sa != null ? sa.getText() : "", pattern, caseSensitive);
+        return new PerformanceComparison(pattern, sa != null ? sa.getN() : 0, saRes, naiveRes);
     }
 
     private static String getSuffixPreview(String text, int pos, int maxLen) {
