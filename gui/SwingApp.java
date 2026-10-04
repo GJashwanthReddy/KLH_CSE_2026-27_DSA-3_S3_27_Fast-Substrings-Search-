@@ -167,18 +167,21 @@ public class SwingApp extends JFrame {
         pnlHeaderRight.add(btnHeaderTest);
 
         if (isTranslucentMode) {
-            JPanel pnlWinControls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+            JPanel pnlWinControls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
             pnlWinControls.setOpaque(false);
 
-            WindowControlButton btnMin = new WindowControlButton("—", false);
+            WindowControlButton btnMin = new WindowControlButton(WindowControlButton.ActionType.MINIMIZE);
             btnMin.setToolTipText("Minimize");
             btnMin.addActionListener(e -> setState(Frame.ICONIFIED));
 
-            WindowControlButton btnMax = new WindowControlButton("□", false);
+            WindowControlButton btnMax = new WindowControlButton(WindowControlButton.ActionType.MAXIMIZE);
             btnMax.setToolTipText("Maximize / Restore");
-            btnMax.addActionListener(e -> toggleMaximize());
+            btnMax.addActionListener(e -> {
+                toggleMaximize();
+                btnMax.repaint();
+            });
 
-            WindowControlButton btnClose = new WindowControlButton("✕", true);
+            WindowControlButton btnClose = new WindowControlButton(WindowControlButton.ActionType.CLOSE);
             btnClose.setToolTipText("Close");
             btnClose.addActionListener(e -> {
                 dispose();
@@ -1166,17 +1169,24 @@ public class SwingApp extends JFrame {
 
     /**
      * WindowControlButton:
-     * Minimalist window controls for undecorated translucent mode (minimize, maximize, close).
+     * Custom vector-drawn title bar controls for minimize, maximize box, and close cross.
+     * Uses resolution-independent Java 2D vector primitives with zero font or unicode dependencies.
      */
     public static class WindowControlButton extends JButton {
-        private final boolean isClose;
-        private boolean isHovered = false;
+        public enum ActionType {
+            MINIMIZE,
+            MAXIMIZE,
+            CLOSE
+        }
 
-        public WindowControlButton(String text, boolean isClose) {
-            super(text);
-            this.isClose = isClose;
-            setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            setPreferredSize(new Dimension(32, 28));
+        private final ActionType actionType;
+        private boolean isHovered = false;
+        private boolean isPressed = false;
+
+        public WindowControlButton(ActionType actionType) {
+            super();
+            this.actionType = actionType;
+            setPreferredSize(new Dimension(36, 28));
             setOpaque(false);
             setContentAreaFilled(false);
             setFocusPainted(false);
@@ -1193,30 +1203,103 @@ public class SwingApp extends JFrame {
                 @Override
                 public void mouseExited(MouseEvent e) {
                     isHovered = false;
+                    isPressed = false;
+                    repaint();
+                }
+
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    isPressed = true;
+                    repaint();
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    isPressed = false;
                     repaint();
                 }
             });
+        }
+
+        public boolean isWindowMaximized() {
+            Window w = SwingUtilities.getWindowAncestor(this);
+            if (w instanceof Frame) {
+                return (((Frame) w).getExtendedState() & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_BOTH;
+            }
+            return false;
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 
             int w = getWidth();
             int h = getHeight();
 
-            if (isHovered) {
-                g2.setColor(isClose ? new Color(239, 68, 68, 220) : new Color(255, 255, 255, 60));
-                g2.fillRoundRect(0, 0, w, h, 6, 6);
+            // Background & Border Rendering
+            if (actionType == ActionType.CLOSE) {
+                if (isPressed) {
+                    g2.setColor(new Color(220, 38, 38)); // Darker red on press
+                    g2.fillRoundRect(0, 0, w, h, 6, 6);
+                } else if (isHovered) {
+                    g2.setColor(new Color(239, 68, 68, 235)); // Vibrant red on hover
+                    g2.fillRoundRect(0, 0, w, h, 6, 6);
+                } else {
+                    g2.setColor(new Color(255, 255, 255, 25)); // Subtle glass pill
+                    g2.fillRoundRect(0, 0, w, h, 6, 6);
+                    g2.setColor(new Color(255, 255, 255, 35));
+                    g2.setStroke(new BasicStroke(1.0f));
+                    g2.drawRoundRect(0, 0, w - 1, h - 1, 6, 6);
+                }
+            } else {
+                if (isPressed) {
+                    g2.setColor(new Color(255, 255, 255, 80));
+                    g2.fillRoundRect(0, 0, w, h, 6, 6);
+                } else if (isHovered) {
+                    g2.setColor(new Color(255, 255, 255, 55));
+                    g2.fillRoundRect(0, 0, w, h, 6, 6);
+                } else {
+                    g2.setColor(new Color(255, 255, 255, 25)); // Subtle glass pill
+                    g2.fillRoundRect(0, 0, w, h, 6, 6);
+                    g2.setColor(new Color(255, 255, 255, 35));
+                    g2.setStroke(new BasicStroke(1.0f));
+                    g2.drawRoundRect(0, 0, w - 1, h - 1, 6, 6);
+                }
             }
 
+            // Draw Crisp Vector Icons
+            int cx = w / 2;
+            int cy = h / 2;
             g2.setColor(Color.WHITE);
-            FontMetrics fm = g2.getFontMetrics(getFont());
-            int tx = (w - fm.stringWidth(getText())) / 2;
-            int ty = (h + fm.getAscent() - fm.getDescent()) / 2;
-            g2.drawString(getText(), tx, ty);
+
+            if (actionType == ActionType.MINIMIZE) {
+                // Crisp horizontal minimize bar
+                g2.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.drawLine(cx - 5, cy + 2, cx + 5, cy + 2);
+            } else if (actionType == ActionType.MAXIMIZE) {
+                if (isWindowMaximized()) {
+                    // Two overlapping restore squares
+                    g2.setStroke(new BasicStroke(1.3f, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_MITER));
+                    g2.drawRect(cx - 3, cy - 6, 8, 8);
+                    g2.setColor(isHovered ? new Color(51, 65, 85) : new Color(30, 41, 59));
+                    g2.fillRect(cx - 6, cy - 3, 9, 9);
+                    g2.setColor(Color.WHITE);
+                    g2.drawRect(cx - 6, cy - 3, 8, 8);
+                } else {
+                    // Single crisp square box icon
+                    g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_MITER));
+                    g2.drawRect(cx - 5, cy - 5, 10, 10);
+                }
+            } else if (actionType == ActionType.CLOSE) {
+                // Crisp cross (X) icon
+                g2.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                int s = 4;
+                g2.drawLine(cx - s, cy - s, cx + s, cy + s);
+                g2.drawLine(cx - s, cy + s, cx + s, cy - s);
+            }
+
             g2.dispose();
         }
     }
