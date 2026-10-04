@@ -1,20 +1,26 @@
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
-import javax.swing.border.TitledBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.plaf.basic.BasicTabbedPaneUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.RoundRectangle2D;
 import java.io.File;
 import java.util.List;
 
 /**
  * SwingApp.java
  * ============
- * Standalone Java Swing GUI Application for Fast Substrings Search Using Suffix Arrays.
- * Clean, technical, professional DSA software tool interface.
- * Strictly project-focused with zero personal/college metadata.
+ * Modern Glassmorphism Desktop UI for Fast Substrings Search Using Suffix Arrays.
+ * Features:
+ * - Translucent glass-style panels, soft shadows, rounded corners, subtle borders.
+ * - Deep navy / slate typography and professional royal blue accents.
+ * - High readability for tables, search fields, and statistics.
+ * - 100% preservation of core Suffix Array + Binary Search algorithms.
+ * - Strictly project-focused with zero personal/college metadata.
  */
 public class SwingApp extends JFrame {
 
@@ -22,24 +28,29 @@ public class SwingApp extends JFrame {
     private DocumentReader.DocumentMetadata currentMetadata = null;
     private SuffixArray currentSuffixArray = null;
 
-    // UI Colors
-    private static final Color COLOR_NAVY = new Color(15, 23, 42);
-    private static final Color COLOR_BG = new Color(248, 250, 252);
-    private static final Color COLOR_CARD_BG = Color.WHITE;
-    private static final Color COLOR_BORDER = new Color(226, 232, 240);
-    private static final Color COLOR_BLUE_PRIMARY = new Color(37, 99, 235);
-    private static final Color COLOR_GREEN = new Color(22, 163, 74);
-    private static final Color COLOR_RED = new Color(220, 38, 38);
-    private static final Color COLOR_TEXT_MUTED = new Color(100, 116, 139);
+    // Theme Palette (Glassmorphism & Clean Typography)
+    private static final Color COLOR_TEXT_MAIN = new Color(15, 23, 42);       // Slate 900
+    private static final Color COLOR_TEXT_MUTED = new Color(100, 116, 139);   // Slate 500
+    private static final Color COLOR_TEXT_LIGHT = new Color(148, 163, 184);   // Slate 400
+    private static final Color COLOR_BLUE_ACCENT = new Color(37, 99, 235);    // Blue 600
+    private static final Color COLOR_BLUE_HOVER = new Color(29, 78, 216);     // Blue 700
+    private static final Color COLOR_GREEN = new Color(22, 163, 74);          // Green 600
+    private static final Color COLOR_RED = new Color(220, 38, 38);            // Red 600
+    private static final Color COLOR_BORDER_SUBTLE = new Color(255, 255, 255, 220);
+    private static final Color COLOR_CARD_FILL_TOP = new Color(255, 255, 255, 230);
+    private static final Color COLOR_CARD_FILL_BOTTOM = new Color(255, 255, 255, 195);
+    private static final Color COLOR_TABLE_HEADER = new Color(241, 245, 249);
 
     // Document Statistics Labels
     private JLabel lblFileName, lblFileType, lblFileSize, lblCharCount, lblWordCount, lblLineCount;
-    private JLabel lblSuffixCount, lblBuildTime, lblIndexStatus;
+    private JLabel lblSuffixCount, lblBuildTime;
+    private StatusBadge lblIndexStatus;
 
     // Search Controls
     private JTextField txtSearchPattern;
     private JCheckBox chkCaseSensitive;
-    private JLabel lblStatus, lblOccurrences, lblSearchTime, lblPositions;
+    private StatusBadge badgeSearchStatus;
+    private JLabel lblMetricOccurrences, lblMetricPositions, lblMetricTime;
 
     // Tables & Models
     private JTable tblMatches, tblBsTrace, tblSaTable, tblPerf, tblTests;
@@ -54,13 +65,14 @@ public class SwingApp extends JFrame {
 
     public SwingApp() {
         setTitle("Fast Substrings Search Using Suffix Arrays");
-        setSize(1260, 840);
-        setMinimumSize(new Dimension(1050, 700));
+        setSize(1300, 880);
+        setMinimumSize(new Dimension(1080, 720));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+
         initUI();
 
-        // Working Default Demo on Launch: "BANANA BANDANA" with query "ANA"
+        // Load Default Working Demo dynamically on startup: "BANANA BANDANA" with query "ANA"
         loadDefaultDemo();
     }
 
@@ -69,237 +81,262 @@ public class SwingApp extends JFrame {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception ignored) {}
 
-        JPanel contentPane = new JPanel(new BorderLayout(0, 0));
-        contentPane.setBackground(COLOR_BG);
+        // Root Container with Frosted Glass Backdrop
+        FrostedBackgroundPanel rootPanel = new FrostedBackgroundPanel();
+        rootPanel.setLayout(new BorderLayout(0, 10));
+        rootPanel.setBorder(new EmptyBorder(12, 16, 16, 16));
 
         // -------------------------------------------------------------
-        // Top Header Panel (Dark Navy, Clean Typography, Project Info ONLY)
+        // 1. TOP HEADER (Translucent Glass Bar)
         // -------------------------------------------------------------
-        JPanel headerPanel = new JPanel(new BorderLayout(15, 0));
-        headerPanel.setBackground(COLOR_NAVY);
-        headerPanel.setBorder(new EmptyBorder(14, 24, 14, 24));
+        GlassCard headerCard = new GlassCard(16, new Color(15, 23, 42, 235), new Color(30, 41, 59, 220),
+                new Color(255, 255, 255, 40), new Color(0, 0, 0, 30));
+        headerCard.setLayout(new BorderLayout(16, 0));
+        headerCard.setBorder(new EmptyBorder(14, 22, 14, 22));
 
         JLabel titleLabel = new JLabel("FAST SUBSTRINGS SEARCH USING SUFFIX ARRAYS");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 19));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         titleLabel.setForeground(Color.WHITE);
 
         JLabel subTitleLabel = new JLabel("Java Implementation • Suffix Array + Binary Search");
         subTitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        subTitleLabel.setForeground(new Color(148, 163, 184));
+        subTitleLabel.setForeground(COLOR_TEXT_LIGHT);
 
-        JPanel titleBox = new JPanel(new GridLayout(2, 1, 0, 3));
-        titleBox.setOpaque(false);
-        titleBox.add(titleLabel);
-        titleBox.add(subTitleLabel);
+        JPanel pnlTitleBox = new JPanel(new GridLayout(2, 1, 0, 3));
+        pnlTitleBox.setOpaque(false);
+        pnlTitleBox.add(titleLabel);
+        pnlTitleBox.add(subTitleLabel);
 
-        JButton btnQuickTestNav = new JButton("Run Test Suite");
-        btnQuickTestNav.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnQuickTestNav.setBackground(new Color(30, 41, 59));
-        btnQuickTestNav.setForeground(Color.WHITE);
-        btnQuickTestNav.setFocusPainted(false);
-        btnQuickTestNav.addActionListener(e -> executeTestSuite());
+        GlassButton btnHeaderTest = new GlassButton("RUN TEST SUITE", GlassButton.Style.HEADER_NAV);
+        btnHeaderTest.setPreferredSize(new Dimension(150, 36));
+        btnHeaderTest.addActionListener(e -> executeTestSuite());
 
-        headerPanel.add(titleBox, BorderLayout.WEST);
-        headerPanel.add(btnQuickTestNav, BorderLayout.EAST);
-        contentPane.add(headerPanel, BorderLayout.NORTH);
+        headerCard.add(pnlTitleBox, BorderLayout.WEST);
+        headerCard.add(btnHeaderTest, BorderLayout.EAST);
+        rootPanel.add(headerCard, BorderLayout.NORTH);
 
         // -------------------------------------------------------------
-        // Main Split Pane (Left: Document Panel, Right: Search & Tabs)
+        // 2. MAIN SPLIT LAYOUT (Left: Input & Stats, Right: Search & Tabs)
         // -------------------------------------------------------------
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(440);
-        splitPane.setBorder(new EmptyBorder(10, 10, 10, 10));
-        splitPane.setBackground(COLOR_BG);
+        splitPane.setOpaque(false);
+        splitPane.setBorder(null);
+        splitPane.setDividerSize(8);
+        splitPane.setDividerLocation(430);
+        splitPane.setContinuousLayout(true);
+        splitPane.setResizeWeight(0.0);
 
-        // Left Panel (Input & Document Stats)
-        JPanel pnlLeft = new JPanel(new BorderLayout(0, 10));
-        pnlLeft.setBackground(COLOR_BG);
+        // =============================================================
+        // LEFT COLUMN: DOCUMENT INPUT & DOCUMENT STATISTICS
+        // =============================================================
+        JPanel pnlLeftCol = new JPanel(new BorderLayout(0, 12));
+        pnlLeftCol.setOpaque(false);
 
-        // Input Card Switcher
-        cardInputLayout = new CardLayout();
-        pnlInputCard = new JPanel(cardInputLayout);
-        pnlInputCard.setBackground(COLOR_CARD_BG);
-        pnlInputCard.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(COLOR_BORDER, 1),
-                new EmptyBorder(8, 8, 8, 8)
-        ));
+        // Card A: Document Input
+        GlassCard cardInput = new GlassCard(16, COLOR_CARD_FILL_TOP, COLOR_CARD_FILL_BOTTOM, COLOR_BORDER_SUBTLE, new Color(15, 23, 42, 12));
+        cardInput.setLayout(new BorderLayout(0, 10));
+        cardInput.setBorder(new EmptyBorder(14, 16, 16, 16));
 
-        // Card 1: File Upload
-        JPanel pnlFileUpload = new JPanel(new GridBagLayout());
-        pnlFileUpload.setBackground(COLOR_CARD_BG);
-        JButton btnChooseFile = new JButton("Choose Document (.txt, .docx)");
-        btnChooseFile.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnChooseFile.setPreferredSize(new Dimension(280, 46));
-        btnChooseFile.setBackground(new Color(241, 245, 249));
-        btnChooseFile.setFocusPainted(false);
-        btnChooseFile.addActionListener(e -> chooseAndLoadFile());
-        pnlFileUpload.add(btnChooseFile);
+        JLabel lblInputTitle = createCardTitle("DOCUMENT INPUT", "SOURCE TEXT SELECTION");
 
-        // Card 2: Manual Text
-        JPanel pnlManualText = new JPanel(new BorderLayout(0, 6));
-        pnlManualText.setBackground(COLOR_CARD_BG);
-        txtManualInput = new JTextArea("BANANA BANDANA");
-        txtManualInput.setFont(new Font("Consolas", Font.PLAIN, 13));
-        txtManualInput.setLineWrap(true);
-        txtManualInput.setWrapStyleWord(true);
-        JScrollPane scrollManual = new JScrollPane(txtManualInput);
-        scrollManual.setPreferredSize(new Dimension(380, 120));
-
-        JButton btnBuildManual = new JButton("Build Suffix Array from Text");
-        btnBuildManual.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnBuildManual.setBackground(COLOR_BLUE_PRIMARY);
-        btnBuildManual.setForeground(Color.WHITE);
-        btnBuildManual.setFocusPainted(false);
-        btnBuildManual.addActionListener(e -> buildFromManualText());
-
-        pnlManualText.add(scrollManual, BorderLayout.CENTER);
-        pnlManualText.add(btnBuildManual, BorderLayout.SOUTH);
-
-        pnlInputCard.add(pnlManualText, "MANUAL_TEXT");
-        pnlInputCard.add(pnlFileUpload, "FILE_UPLOAD");
-
-        // Input Mode Radio Switcher
-        JPanel pnlModeSwitch = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 4));
-        pnlModeSwitch.setBackground(COLOR_BG);
+        // Input Switcher Radio Buttons
+        JPanel pnlRadio = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 2));
+        pnlRadio.setOpaque(false);
         JRadioButton rdoManual = new JRadioButton("Manual Text Entry", true);
         JRadioButton rdoFile = new JRadioButton("File Upload (.txt / .docx)");
-        rdoManual.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        rdoFile.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        rdoManual.setBackground(COLOR_BG);
-        rdoFile.setBackground(COLOR_BG);
+        styleRadioButton(rdoManual);
+        styleRadioButton(rdoFile);
         ButtonGroup grpMode = new ButtonGroup();
         grpMode.add(rdoManual);
         grpMode.add(rdoFile);
 
-        rdoManual.addActionListener(e -> cardInputLayout.show(pnlInputCard, "MANUAL_TEXT"));
-        rdoFile.addActionListener(e -> cardInputLayout.show(pnlInputCard, "FILE_UPLOAD"));
+        pnlRadio.add(rdoManual);
+        pnlRadio.add(rdoFile);
 
-        pnlModeSwitch.add(rdoManual);
-        pnlModeSwitch.add(rdoFile);
+        // Card Container for Manual Text vs File Upload
+        cardInputLayout = new CardLayout();
+        pnlInputCard = new JPanel(cardInputLayout);
+        pnlInputCard.setOpaque(false);
 
-        JPanel pnlInputContainer = new JPanel(new BorderLayout(0, 4));
-        pnlInputContainer.setBackground(COLOR_BG);
-        pnlInputContainer.setBorder(createCleanTitledBorder("DOCUMENT INPUT"));
-        pnlInputContainer.add(pnlModeSwitch, BorderLayout.NORTH);
-        pnlInputContainer.add(pnlInputCard, BorderLayout.CENTER);
+        // Sub-panel 1: Manual Text
+        JPanel pnlManual = new JPanel(new BorderLayout(0, 8));
+        pnlManual.setOpaque(false);
+        txtManualInput = new JTextArea("BANANA BANDANA");
+        txtManualInput.setFont(new Font("Consolas", Font.PLAIN, 13));
+        txtManualInput.setForeground(COLOR_TEXT_MAIN);
+        txtManualInput.setLineWrap(true);
+        txtManualInput.setWrapStyleWord(true);
+        txtManualInput.setBorder(new EmptyBorder(8, 8, 8, 8));
 
-        // Document Statistics Panel
-        JPanel pnlStats = new JPanel(new GridLayout(9, 2, 8, 6));
-        pnlStats.setBackground(COLOR_CARD_BG);
-        pnlStats.setBorder(BorderFactory.createCompoundBorder(
-                createCleanTitledBorder("DOCUMENT STATISTICS"),
-                new EmptyBorder(8, 12, 10, 12)
-        ));
+        JScrollPane scrollManual = new JScrollPane(txtManualInput);
+        scrollManual.setPreferredSize(new Dimension(360, 120));
+        scrollManual.setBorder(BorderFactory.createLineBorder(new Color(203, 213, 225), 1, true));
 
-        lblFileName = createValueLabel("-");
-        lblFileType = createValueLabel("-");
-        lblFileSize = createValueLabel("-");
-        lblCharCount = createValueLabel("0");
-        lblWordCount = createValueLabel("0");
-        lblLineCount = createValueLabel("0");
-        lblSuffixCount = createValueLabel("0");
-        lblBuildTime = createValueLabel("0.000 ms");
-        lblIndexStatus = createValueLabel("NOT INDEXED");
+        GlassButton btnBuildManual = new GlassButton("Build Suffix Array from Text", GlassButton.Style.PRIMARY);
+        btnBuildManual.setPreferredSize(new Dimension(360, 36));
+        btnBuildManual.addActionListener(e -> buildFromManualText());
 
-        addStatRow(pnlStats, "File Name:", lblFileName);
-        addStatRow(pnlStats, "File Type:", lblFileType);
-        addStatRow(pnlStats, "File Size:", lblFileSize);
-        addStatRow(pnlStats, "Characters:", lblCharCount);
-        addStatRow(pnlStats, "Words:", lblWordCount);
-        addStatRow(pnlStats, "Lines:", lblLineCount);
-        addStatRow(pnlStats, "Suffixes Indexed:", lblSuffixCount);
-        addStatRow(pnlStats, "SA Build Time:", lblBuildTime);
-        addStatRow(pnlStats, "Index Status:", lblIndexStatus);
+        pnlManual.add(scrollManual, BorderLayout.CENTER);
+        pnlManual.add(btnBuildManual, BorderLayout.SOUTH);
 
-        pnlLeft.add(pnlInputContainer, BorderLayout.NORTH);
-        pnlLeft.add(pnlStats, BorderLayout.CENTER);
+        // Sub-panel 2: File Upload
+        JPanel pnlUpload = new JPanel(new GridBagLayout());
+        pnlUpload.setOpaque(false);
+        pnlUpload.setPreferredSize(new Dimension(360, 160));
 
-        // -------------------------------------------------------------
-        // Right Panel (Search Controls & Tabbed Visualizations)
-        // -------------------------------------------------------------
-        JPanel pnlRight = new JPanel(new BorderLayout(0, 10));
-        pnlRight.setBackground(COLOR_BG);
+        GlassButton btnChooseDoc = new GlassButton("Choose Document (.txt, .docx)", GlassButton.Style.SECONDARY);
+        btnChooseDoc.setPreferredSize(new Dimension(300, 48));
+        btnChooseDoc.addActionListener(e -> chooseAndLoadFile());
+        pnlUpload.add(btnChooseDoc);
 
-        // Search Input Card
-        JPanel pnlSearchBox = new JPanel(new BorderLayout(8, 8));
-        pnlSearchBox.setBackground(COLOR_CARD_BG);
-        pnlSearchBox.setBorder(BorderFactory.createCompoundBorder(
-                createCleanTitledBorder("SUBSTRING SEARCH (SUFFIX ARRAY + BINARY SEARCH)"),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
+        pnlInputCard.add(pnlManual, "MANUAL");
+        pnlInputCard.add(pnlUpload, "FILE");
+
+        rdoManual.addActionListener(e -> cardInputLayout.show(pnlInputCard, "MANUAL"));
+        rdoFile.addActionListener(e -> cardInputLayout.show(pnlInputCard, "FILE"));
+
+        cardInput.add(lblInputTitle, BorderLayout.NORTH);
+        JPanel pnlInputCenter = new JPanel(new BorderLayout(0, 8));
+        pnlInputCenter.setOpaque(false);
+        pnlInputCenter.add(pnlRadio, BorderLayout.NORTH);
+        pnlInputCenter.add(pnlInputCard, BorderLayout.CENTER);
+        cardInput.add(pnlInputCenter, BorderLayout.CENTER);
+
+        // Card B: Document Statistics
+        GlassCard cardStats = new GlassCard(16, COLOR_CARD_FILL_TOP, COLOR_CARD_FILL_BOTTOM, COLOR_BORDER_SUBTLE, new Color(15, 23, 42, 12));
+        cardStats.setLayout(new BorderLayout(0, 12));
+        cardStats.setBorder(new EmptyBorder(14, 16, 16, 16));
+
+        JLabel lblStatsTitle = createCardTitle("DOCUMENT STATISTICS", "PROCESSED METRICS");
+
+        JPanel pnlStatsGrid = new JPanel(new GridLayout(9, 2, 8, 8));
+        pnlStatsGrid.setOpaque(false);
+
+        lblFileName = createStatValue("-");
+        lblFileType = createStatValue("-");
+        lblFileSize = createStatValue("-");
+        lblCharCount = createStatValue("0");
+        lblWordCount = createStatValue("0");
+        lblLineCount = createStatValue("0");
+        lblSuffixCount = createStatValue("0");
+        lblBuildTime = createStatValue("0.000 ms");
+        lblIndexStatus = new StatusBadge("NOT INDEXED", StatusBadge.Type.NEUTRAL);
+
+        addStatItem(pnlStatsGrid, "File Name", lblFileName);
+        addStatItem(pnlStatsGrid, "File Type", lblFileType);
+        addStatItem(pnlStatsGrid, "File Size", lblFileSize);
+        addStatItem(pnlStatsGrid, "Characters", lblCharCount);
+        addStatItem(pnlStatsGrid, "Words", lblWordCount);
+        addStatItem(pnlStatsGrid, "Lines", lblLineCount);
+        addStatItem(pnlStatsGrid, "Suffixes Indexed", lblSuffixCount);
+        addStatItem(pnlStatsGrid, "SA Build Time", lblBuildTime);
+        addStatItem(pnlStatsGrid, "Index Status", lblIndexStatus);
+
+        cardStats.add(lblStatsTitle, BorderLayout.NORTH);
+        cardStats.add(pnlStatsGrid, BorderLayout.CENTER);
+
+        pnlLeftCol.add(cardInput, BorderLayout.NORTH);
+        pnlLeftCol.add(cardStats, BorderLayout.CENTER);
+
+        // =============================================================
+        // RIGHT COLUMN: SUBSTRING SEARCH, SUMMARY METRICS & DSA TABS
+        // =============================================================
+        JPanel pnlRightCol = new JPanel(new BorderLayout(0, 12));
+        pnlRightCol.setOpaque(false);
+
+        // Search Section Glass Card
+        GlassCard cardSearch = new GlassCard(16, COLOR_CARD_FILL_TOP, COLOR_CARD_FILL_BOTTOM, COLOR_BORDER_SUBTLE, new Color(15, 23, 42, 12));
+        cardSearch.setLayout(new BorderLayout(0, 10));
+        cardSearch.setBorder(new EmptyBorder(14, 18, 14, 18));
+
+        JPanel pnlSearchHeader = new JPanel(new BorderLayout(0, 0));
+        pnlSearchHeader.setOpaque(false);
+        JLabel lblSearchTitle = createCardTitle("SUBSTRING SEARCH", "SUFFIX ARRAY + BINARY SEARCH");
+        pnlSearchHeader.add(lblSearchTitle, BorderLayout.WEST);
+
+        // Search Input Bar with Rounded Field and Action Buttons
+        JPanel pnlSearchControls = new JPanel(new BorderLayout(10, 0));
+        pnlSearchControls.setOpaque(false);
 
         txtSearchPattern = new JTextField("ANA");
         txtSearchPattern.setFont(new Font("Consolas", Font.BOLD, 14));
-        txtSearchPattern.setPreferredSize(new Dimension(250, 34));
+        txtSearchPattern.setForeground(COLOR_TEXT_MAIN);
+        txtSearchPattern.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(203, 213, 225), 1, true),
+                new EmptyBorder(6, 10, 6, 10)
+        ));
+        txtSearchPattern.setPreferredSize(new Dimension(300, 38));
         txtSearchPattern.addActionListener(e -> executeSearch());
 
-        JButton btnSearch = new JButton("SEARCH");
-        btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnSearch.setBackground(COLOR_BLUE_PRIMARY);
-        btnSearch.setForeground(Color.WHITE);
-        btnSearch.setFocusPainted(false);
+        JPanel pnlButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        pnlButtons.setOpaque(false);
+
+        GlassButton btnSearch = new GlassButton("SEARCH", GlassButton.Style.PRIMARY);
+        btnSearch.setPreferredSize(new Dimension(100, 38));
         btnSearch.addActionListener(e -> executeSearch());
 
-        JButton btnClear = new JButton("CLEAR");
-        btnClear.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnClear.setBackground(new Color(241, 245, 249));
-        btnClear.setForeground(new Color(51, 65, 85));
-        btnClear.setFocusPainted(false);
+        GlassButton btnClear = new GlassButton("CLEAR", GlassButton.Style.SECONDARY);
+        btnClear.setPreferredSize(new Dimension(85, 38));
         btnClear.addActionListener(e -> clearSearch());
 
-        JPanel pnlSearchButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        pnlSearchButtons.setBackground(COLOR_CARD_BG);
-        pnlSearchButtons.add(btnSearch);
-        pnlSearchButtons.add(btnClear);
+        pnlButtons.add(btnSearch);
+        pnlButtons.add(btnClear);
+
+        pnlSearchControls.add(txtSearchPattern, BorderLayout.CENTER);
+        pnlSearchControls.add(pnlButtons, BorderLayout.EAST);
 
         chkCaseSensitive = new JCheckBox("Case Sensitive", true);
         chkCaseSensitive.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        chkCaseSensitive.setBackground(COLOR_CARD_BG);
+        chkCaseSensitive.setForeground(COLOR_TEXT_MUTED);
+        chkCaseSensitive.setOpaque(false);
 
-        JPanel pnlSearchTopBar = new JPanel(new BorderLayout(8, 0));
-        pnlSearchTopBar.setBackground(COLOR_CARD_BG);
-        pnlSearchTopBar.add(txtSearchPattern, BorderLayout.CENTER);
-        pnlSearchTopBar.add(pnlSearchButtons, BorderLayout.EAST);
+        cardSearch.add(pnlSearchHeader, BorderLayout.NORTH);
+        cardSearch.add(pnlSearchControls, BorderLayout.CENTER);
+        cardSearch.add(chkCaseSensitive, BorderLayout.SOUTH);
 
-        pnlSearchBox.add(pnlSearchTopBar, BorderLayout.CENTER);
-        pnlSearchBox.add(chkCaseSensitive, BorderLayout.SOUTH);
+        // Search Results Summary Banner (3 Distinct Modern Glass Metric Cards)
+        JPanel pnlSummaryRow = new JPanel(new GridLayout(1, 4, 10, 0));
+        pnlSummaryRow.setOpaque(false);
+        pnlSummaryRow.setPreferredSize(new Dimension(600, 72));
 
-        // Search Results Summary Banner
-        JPanel pnlSummary = new JPanel(new GridLayout(2, 2, 10, 4));
-        pnlSummary.setBackground(COLOR_CARD_BG);
-        pnlSummary.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(COLOR_BORDER, 1),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
+        badgeSearchStatus = new StatusBadge("READY", StatusBadge.Type.INFO);
+        JPanel pnlStatusCard = createMetricCard("STATUS", badgeSearchStatus);
 
-        lblStatus = new JLabel("READY");
-        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lblStatus.setForeground(COLOR_BLUE_PRIMARY);
+        lblMetricOccurrences = new JLabel("0");
+        lblMetricOccurrences.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblMetricOccurrences.setForeground(COLOR_TEXT_MAIN);
+        JPanel pnlOccurrencesCard = createMetricCard("OCCURRENCES", lblMetricOccurrences);
 
-        lblOccurrences = new JLabel("Occurrences: 0");
-        lblOccurrences.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblMetricPositions = new JLabel("None");
+        lblMetricPositions.setFont(new Font("Consolas", Font.BOLD, 13));
+        lblMetricPositions.setForeground(COLOR_TEXT_MAIN);
+        JPanel pnlPositionsCard = createMetricCard("POSITIONS", lblMetricPositions);
 
-        lblSearchTime = new JLabel("Search Time: 0.000 ms");
-        lblSearchTime.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblMetricTime = new JLabel("0.000 ms");
+        lblMetricTime.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lblMetricTime.setForeground(COLOR_BLUE_ACCENT);
+        JPanel pnlTimeCard = createMetricCard("SEARCH TIME", lblMetricTime);
 
-        lblPositions = new JLabel("Positions: None");
-        lblPositions.setFont(new Font("Consolas", Font.PLAIN, 12));
+        pnlSummaryRow.add(pnlStatusCard);
+        pnlSummaryRow.add(pnlOccurrencesCard);
+        pnlSummaryRow.add(pnlPositionsCard);
+        pnlSummaryRow.add(pnlTimeCard);
 
-        pnlSummary.add(lblStatus);
-        pnlSummary.add(lblOccurrences);
-        pnlSummary.add(lblSearchTime);
-        pnlSummary.add(lblPositions);
+        JPanel pnlSearchTop = new JPanel(new BorderLayout(0, 10));
+        pnlSearchTop.setOpaque(false);
+        pnlSearchTop.add(cardSearch, BorderLayout.NORTH);
+        pnlSearchTop.add(pnlSummaryRow, BorderLayout.SOUTH);
 
-        JPanel pnlSearchHeader = new JPanel(new BorderLayout(0, 6));
-        pnlSearchHeader.setBackground(COLOR_BG);
-        pnlSearchHeader.add(pnlSearchBox, BorderLayout.NORTH);
-        pnlSearchHeader.add(pnlSummary, BorderLayout.SOUTH);
+        // =============================================================
+        // RESULT TABS (Modern Clean Glass Tabs)
+        // =============================================================
+        GlassCard cardTabs = new GlassCard(16, COLOR_CARD_FILL_TOP, COLOR_CARD_FILL_BOTTOM, COLOR_BORDER_SUBTLE, new Color(15, 23, 42, 12));
+        cardTabs.setLayout(new BorderLayout(0, 0));
+        cardTabs.setBorder(new EmptyBorder(8, 10, 10, 10));
 
-        // -------------------------------------------------------------
-        // Tabbed Visualizations Panel
-        // -------------------------------------------------------------
         JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tabbedPane.setUI(new ModernGlassTabbedPaneUI());
+        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 12));
 
         // Tab 1: Matching Snippets
         modelMatches = new DefaultTableModel(new String[]{"Match #", "Position", "Line #", "Context Snippet"}, 0) {
@@ -307,12 +344,12 @@ public class SwingApp extends JFrame {
             public boolean isCellEditable(int row, int col) { return false; }
         };
         tblMatches = new JTable(modelMatches);
-        styleTable(tblMatches);
+        styleModernTable(tblMatches);
         tblMatches.getColumnModel().getColumn(0).setPreferredWidth(65);
         tblMatches.getColumnModel().getColumn(1).setPreferredWidth(85);
         tblMatches.getColumnModel().getColumn(2).setPreferredWidth(70);
         tblMatches.getColumnModel().getColumn(3).setPreferredWidth(750);
-        tabbedPane.addTab("Matching Snippets", new JScrollPane(tblMatches));
+        tabbedPane.addTab("Matching Snippets", createTableScrollPane(tblMatches));
 
         // Tab 2: Binary Search Trace
         modelBsTrace = new DefaultTableModel(new String[]{
@@ -322,9 +359,9 @@ public class SwingApp extends JFrame {
             public boolean isCellEditable(int row, int col) { return false; }
         };
         tblBsTrace = new JTable(modelBsTrace);
-        styleTable(tblBsTrace);
+        styleModernTable(tblBsTrace);
         tblBsTrace.getColumnModel().getColumn(0).setPreferredWidth(50);
-        tblBsTrace.getColumnModel().getColumn(1).setPreferredWidth(120);
+        tblBsTrace.getColumnModel().getColumn(1).setPreferredWidth(125);
         tblBsTrace.getColumnModel().getColumn(2).setPreferredWidth(50);
         tblBsTrace.getColumnModel().getColumn(3).setPreferredWidth(50);
         tblBsTrace.getColumnModel().getColumn(4).setPreferredWidth(50);
@@ -332,7 +369,7 @@ public class SwingApp extends JFrame {
         tblBsTrace.getColumnModel().getColumn(6).setPreferredWidth(160);
         tblBsTrace.getColumnModel().getColumn(7).setPreferredWidth(180);
         tblBsTrace.getColumnModel().getColumn(8).setPreferredWidth(260);
-        tabbedPane.addTab("Binary Search Trace", new JScrollPane(tblBsTrace));
+        tabbedPane.addTab("Binary Search Trace", createTableScrollPane(tblBsTrace));
 
         // Tab 3: Suffix Array Table
         modelSaTable = new DefaultTableModel(new String[]{"SA Index", "Position", "Suffix"}, 0) {
@@ -340,15 +377,15 @@ public class SwingApp extends JFrame {
             public boolean isCellEditable(int row, int col) { return false; }
         };
         tblSaTable = new JTable(modelSaTable);
-        styleTable(tblSaTable);
+        styleModernTable(tblSaTable);
         tblSaTable.getColumnModel().getColumn(0).setPreferredWidth(80);
         tblSaTable.getColumnModel().getColumn(1).setPreferredWidth(85);
         tblSaTable.getColumnModel().getColumn(2).setPreferredWidth(780);
-        tabbedPane.addTab("Suffix Array Table", new JScrollPane(tblSaTable));
+        tabbedPane.addTab("Suffix Array Table", createTableScrollPane(tblSaTable));
 
         // Tab 4: Performance Comparison
-        JPanel pnlPerfTab = new JPanel(new BorderLayout(0, 8));
-        pnlPerfTab.setBackground(COLOR_CARD_BG);
+        JPanel pnlPerfTab = new JPanel(new BorderLayout(0, 10));
+        pnlPerfTab.setOpaque(false);
         pnlPerfTab.setBorder(new EmptyBorder(8, 8, 8, 8));
 
         modelPerf = new DefaultTableModel(new String[]{
@@ -358,7 +395,7 @@ public class SwingApp extends JFrame {
             public boolean isCellEditable(int row, int col) { return false; }
         };
         tblPerf = new JTable(modelPerf);
-        styleTable(tblPerf);
+        styleModernTable(tblPerf);
         tblPerf.getColumnModel().getColumn(0).setPreferredWidth(240);
         tblPerf.getColumnModel().getColumn(1).setPreferredWidth(140);
         tblPerf.getColumnModel().getColumn(2).setPreferredWidth(140);
@@ -366,30 +403,27 @@ public class SwingApp extends JFrame {
 
         lblPerfSummary = new JLabel("Perform a search to calculate live performance metrics comparing Naive Search vs Suffix Array.");
         lblPerfSummary.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblPerfSummary.setForeground(COLOR_BLUE_PRIMARY);
+        lblPerfSummary.setForeground(COLOR_BLUE_ACCENT);
         lblPerfSummary.setBorder(new EmptyBorder(6, 6, 6, 6));
 
-        pnlPerfTab.add(new JScrollPane(tblPerf), BorderLayout.CENTER);
+        pnlPerfTab.add(createTableScrollPane(tblPerf), BorderLayout.CENTER);
         pnlPerfTab.add(lblPerfSummary, BorderLayout.SOUTH);
         tabbedPane.addTab("Performance Comparison", pnlPerfTab);
 
         // Tab 5: Test Suite
-        JPanel pnlTestTab = new JPanel(new BorderLayout(0, 8));
-        pnlTestTab.setBackground(COLOR_CARD_BG);
+        JPanel pnlTestTab = new JPanel(new BorderLayout(0, 10));
+        pnlTestTab.setOpaque(false);
         pnlTestTab.setBorder(new EmptyBorder(8, 8, 8, 8));
 
-        JPanel pnlTestTop = new JPanel(new BorderLayout(10, 0));
-        pnlTestTop.setBackground(COLOR_CARD_BG);
+        JPanel pnlTestTop = new JPanel(new BorderLayout(12, 0));
+        pnlTestTop.setOpaque(false);
 
         lblTestSummary = new JLabel("Click 'Run Automated Test Suite' to execute all 15 algorithmic test cases live.");
         lblTestSummary.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblTestSummary.setForeground(COLOR_NAVY);
+        lblTestSummary.setForeground(COLOR_TEXT_MAIN);
 
-        JButton btnRunTestsInside = new JButton("Run Automated Test Suite");
-        btnRunTestsInside.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnRunTestsInside.setBackground(COLOR_BLUE_PRIMARY);
-        btnRunTestsInside.setForeground(Color.WHITE);
-        btnRunTestsInside.setFocusPainted(false);
+        GlassButton btnRunTestsInside = new GlassButton("Run Automated Test Suite", GlassButton.Style.PRIMARY);
+        btnRunTestsInside.setPreferredSize(new Dimension(200, 36));
         btnRunTestsInside.addActionListener(e -> executeTestSuite());
 
         pnlTestTop.add(lblTestSummary, BorderLayout.CENTER);
@@ -402,7 +436,7 @@ public class SwingApp extends JFrame {
             public boolean isCellEditable(int row, int col) { return false; }
         };
         tblTests = new JTable(modelTests);
-        styleTable(tblTests);
+        styleModernTable(tblTests);
         tblTests.getColumnModel().getColumn(0).setPreferredWidth(55);
         tblTests.getColumnModel().getColumn(1).setPreferredWidth(180);
         tblTests.getColumnModel().getColumn(2).setPreferredWidth(110);
@@ -412,21 +446,25 @@ public class SwingApp extends JFrame {
         tblTests.getColumnModel().getColumn(6).setPreferredWidth(100);
 
         pnlTestTab.add(pnlTestTop, BorderLayout.NORTH);
-        pnlTestTab.add(new JScrollPane(tblTests), BorderLayout.CENTER);
+        pnlTestTab.add(createTableScrollPane(tblTests), BorderLayout.CENTER);
         tabbedPane.addTab("Test Suite", pnlTestTab);
 
-        pnlRight.add(pnlSearchHeader, BorderLayout.NORTH);
-        pnlRight.add(tabbedPane, BorderLayout.CENTER);
+        cardTabs.add(tabbedPane, BorderLayout.CENTER);
 
-        splitPane.setLeftComponent(pnlLeft);
-        splitPane.setRightComponent(pnlRight);
-        contentPane.add(splitPane, BorderLayout.CENTER);
+        pnlRightCol.add(pnlSearchTop, BorderLayout.NORTH);
+        pnlRightCol.add(cardTabs, BorderLayout.CENTER);
 
-        setContentPane(contentPane);
+        splitPane.setLeftComponent(pnlLeftCol);
+        splitPane.setRightComponent(pnlRightCol);
+        rootPanel.add(splitPane, BorderLayout.CENTER);
+
+        setContentPane(rootPanel);
     }
 
+    // -------------------------------------------------------------
+    // Working Default Demo: BANANA BANDANA with query ANA
+    // -------------------------------------------------------------
     private void loadDefaultDemo() {
-        // Default sample as requested: "BANANA BANDANA" with default query "ANA"
         txtManualInput.setText("BANANA BANDANA");
         txtSearchPattern.setText("ANA");
         loadManualTextInternal("BANANA BANDANA", "Sample: BANANA BANDANA");
@@ -482,14 +520,12 @@ public class SwingApp extends JFrame {
         lblLineCount.setText(String.format("%,d", meta.lineCount));
         lblSuffixCount.setText(String.format("%,d", currentSuffixArray.getN()));
         lblBuildTime.setText(PerformanceMonitor.formatDurationMs(currentSuffixArray.getBuildTimeMs()));
-        lblIndexStatus.setText("INDEXED");
-        lblIndexStatus.setForeground(COLOR_GREEN);
+        lblIndexStatus.setBadge("INDEXED", StatusBadge.Type.SUCCESS);
 
         // Dynamically populate Suffix Array Table
         populateSaTable();
 
-        lblStatus.setText("INDEXED");
-        lblStatus.setForeground(COLOR_GREEN);
+        badgeSearchStatus.setBadge("INDEXED", StatusBadge.Type.SUCCESS);
     }
 
     private void populateSaTable() {
@@ -520,10 +556,9 @@ public class SwingApp extends JFrame {
 
         String pattern = txtSearchPattern.getText();
         if (pattern == null || pattern.isEmpty()) {
-            lblStatus.setText("EMPTY PATTERN");
-            lblStatus.setForeground(COLOR_RED);
-            lblOccurrences.setText("Occurrences: 0");
-            lblPositions.setText("Positions: None");
+            badgeSearchStatus.setBadge("EMPTY PATTERN", StatusBadge.Type.DANGER);
+            lblMetricOccurrences.setText("0");
+            lblMetricPositions.setText("None");
             modelMatches.setRowCount(0);
             modelBsTrace.setRowCount(0);
             return;
@@ -537,18 +572,16 @@ public class SwingApp extends JFrame {
         // 2. Execute actual Naive Search for real Performance Comparison
         PatternSearch.PerformanceComparison comp = PatternSearch.compareSearch(currentSuffixArray, pattern, caseSens, 40);
 
-        // Update Summary Status Bar
+        // Update Summary Status Badges & Metrics
         if (result.getStatus() == SearchResult.Status.FOUND) {
-            lblStatus.setText("FOUND");
-            lblStatus.setForeground(COLOR_GREEN);
+            badgeSearchStatus.setBadge("FOUND", StatusBadge.Type.SUCCESS);
         } else {
-            lblStatus.setText("NOT FOUND");
-            lblStatus.setForeground(COLOR_RED);
+            badgeSearchStatus.setBadge("NOT FOUND", StatusBadge.Type.DANGER);
         }
 
-        lblOccurrences.setText("Occurrences: " + result.getOccurrencesCount());
-        lblSearchTime.setText("Search Time: " + PerformanceMonitor.formatDurationMs(result.getSearchTimeMs()));
-        lblPositions.setText("Positions: " + result.getPositionsFormatted());
+        lblMetricOccurrences.setText(String.valueOf(result.getOccurrencesCount()));
+        lblMetricTime.setText(PerformanceMonitor.formatDurationMs(result.getSearchTimeMs()));
+        lblMetricPositions.setText(result.getPositionsFormatted());
 
         // Update Tab 1: Matching Snippets Table
         modelMatches.setRowCount(0);
@@ -589,7 +622,7 @@ public class SwingApp extends JFrame {
             ));
         } else {
             lblPerfSummary.setText(String.format(
-                    "Both algorithms found %d occurrences in under 1 ms for small text of length %d.",
+                    "Both algorithms found %d occurrences in under 1 ms for text of length %d.",
                     result.getOccurrencesCount(), loadedText.length()
             ));
         }
@@ -597,11 +630,11 @@ public class SwingApp extends JFrame {
 
     private void clearSearch() {
         txtSearchPattern.setText("");
-        lblStatus.setText(currentSuffixArray != null ? "INDEXED" : "READY");
-        lblStatus.setForeground(currentSuffixArray != null ? COLOR_GREEN : COLOR_BLUE_PRIMARY);
-        lblOccurrences.setText("Occurrences: 0");
-        lblSearchTime.setText("Search Time: 0.000 ms");
-        lblPositions.setText("Positions: None");
+        badgeSearchStatus.setBadge(currentSuffixArray != null ? "INDEXED" : "READY",
+                currentSuffixArray != null ? StatusBadge.Type.SUCCESS : StatusBadge.Type.INFO);
+        lblMetricOccurrences.setText("0");
+        lblMetricTime.setText("0.000 ms");
+        lblMetricPositions.setText("None");
         modelMatches.setRowCount(0);
         modelBsTrace.setRowCount(0);
         modelPerf.setRowCount(0);
@@ -640,43 +673,466 @@ public class SwingApp extends JFrame {
     }
 
     // -------------------------------------------------------------
-    // Helper Styling & UI Factory Methods
+    // UI Helpers & Component Factories
     // -------------------------------------------------------------
-    private static void styleTable(JTable table) {
-        table.setFont(new Font("Consolas", Font.PLAIN, 12));
-        table.setRowHeight(26);
-        table.setGridColor(COLOR_BORDER);
-        table.setShowGrid(true);
-        table.setSelectionBackground(new Color(224, 242, 254));
-        table.setSelectionForeground(Color.BLACK);
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        table.getTableHeader().setBackground(new Color(241, 245, 249));
-        table.getTableHeader().setForeground(new Color(30, 41, 59));
-        table.getTableHeader().setReorderingAllowed(false);
-    }
-
-    private static TitledBorder createCleanTitledBorder(String title) {
-        TitledBorder border = BorderFactory.createTitledBorder(
-                new LineBorder(COLOR_BORDER, 1),
-                " " + title + " "
-        );
-        border.setTitleFont(new Font("Segoe UI", Font.BOLD, 11));
-        border.setTitleColor(COLOR_TEXT_MUTED);
-        return border;
-    }
-
-    private static JLabel createValueLabel(String text) {
-        JLabel lbl = new JLabel(text);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lbl.setForeground(new Color(30, 41, 59));
+    private static JLabel createCardTitle(String mainTitle, String subTitle) {
+        JLabel lbl = new JLabel("<html><span style='font-size:12px; font-weight:bold; color:#0f172a;'>" +
+                mainTitle + "</span>&nbsp;&nbsp;<span style='font-size:10px; color:#64748b; font-weight:normal;'>" +
+                subTitle + "</span></html>");
         return lbl;
     }
 
-    private static void addStatRow(JPanel panel, String labelText, JLabel valueLabel) {
+    private static void styleRadioButton(JRadioButton rdo) {
+        rdo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        rdo.setForeground(COLOR_TEXT_MAIN);
+        rdo.setOpaque(false);
+        rdo.setFocusPainted(false);
+    }
+
+    private static JLabel createStatValue(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lbl.setForeground(COLOR_TEXT_MAIN);
+        return lbl;
+    }
+
+    private static void addStatItem(JPanel panel, String labelText, JComponent valueComp) {
         JLabel lbl = new JLabel(labelText);
         lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lbl.setForeground(COLOR_TEXT_MUTED);
         panel.add(lbl);
-        panel.add(valueLabel);
+        panel.add(valueComp);
+    }
+
+    private static JPanel createMetricCard(String title, JComponent valueComponent) {
+        GlassCard card = new GlassCard(12, new Color(255, 255, 255, 220), new Color(255, 255, 255, 180),
+                new Color(255, 255, 255, 240), new Color(15, 23, 42, 8));
+        card.setLayout(new BorderLayout(0, 4));
+        card.setBorder(new EmptyBorder(8, 12, 8, 12));
+
+        JLabel lblTitle = new JLabel(title);
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblTitle.setForeground(COLOR_TEXT_MUTED);
+
+        card.add(lblTitle, BorderLayout.NORTH);
+        card.add(valueComponent, BorderLayout.CENTER);
+        return card;
+    }
+
+    private static JScrollPane createTableScrollPane(JTable table) {
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true));
+        scroll.getViewport().setBackground(Color.WHITE);
+        return scroll;
+    }
+
+    private static void styleModernTable(JTable table) {
+        table.setFont(new Font("Consolas", Font.PLAIN, 12));
+        table.setRowHeight(28);
+        table.setGridColor(new Color(241, 245, 249));
+        table.setShowGrid(true);
+        table.setSelectionBackground(new Color(224, 242, 254));
+        table.setSelectionForeground(COLOR_TEXT_MAIN);
+        table.setBackground(Color.WHITE);
+
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        table.getTableHeader().setBackground(COLOR_TABLE_HEADER);
+        table.getTableHeader().setForeground(COLOR_TEXT_MAIN);
+        table.getTableHeader().setPreferredSize(new Dimension(0, 32));
+        table.getTableHeader().setReorderingAllowed(false);
+
+        // Subtle alternating row background for clean technical look
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tbl, Object val, boolean isSel, boolean hasFocus, int row, int col) {
+                Component c = super.getTableCellRendererComponent(tbl, val, isSel, hasFocus, row, col);
+                if (!isSel) {
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252));
+                }
+                setBorder(new EmptyBorder(0, 6, 0, 6));
+                return c;
+            }
+        });
+    }
+
+    // =============================================================
+    // CUSTOM GLASSMORPHIC UI COMPONENTS
+    // =============================================================
+
+    /**
+     * FrostedBackgroundPanel:
+     * Ambient cool-slate frosted backdrop simulating depth behind glass panels.
+     * Purely procedural gradient with zero photograph/wallpaper dependencies.
+     */
+    public static class FrostedBackgroundPanel extends JPanel {
+        public FrostedBackgroundPanel() {
+            setOpaque(true);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            // Smooth diagonal background wash from soft slate-100 to slate-200
+            GradientPaint gp = new GradientPaint(0, 0, new Color(241, 245, 249), w, h, new Color(226, 232, 240));
+            g2.setPaint(gp);
+            g2.fillRect(0, 0, w, h);
+
+            // Subtle ambient light glows (frosted glass atmospheric diffusion)
+            RadialGradientPaint rgp1 = new RadialGradientPaint(
+                    new Point(w / 4, 0), Math.max(w / 2, 300),
+                    new float[]{0.0f, 1.0f},
+                    new Color[]{new Color(219, 234, 254, 120), new Color(241, 245, 249, 0)}
+            );
+            g2.setPaint(rgp1);
+            g2.fillRect(0, 0, w, h);
+
+            RadialGradientPaint rgp2 = new RadialGradientPaint(
+                    new Point(w * 3 / 4, h), Math.max(w / 2, 300),
+                    new float[]{0.0f, 1.0f},
+                    new Color[]{new Color(224, 231, 255, 100), new Color(226, 232, 240, 0)}
+            );
+            g2.setPaint(rgp2);
+            g2.fillRect(0, 0, w, h);
+
+            g2.dispose();
+        }
+    }
+
+    /**
+     * GlassCard:
+     * Translucent rounded card container with soft drop shadow and crisp border.
+     */
+    public static class GlassCard extends JPanel {
+        private final int radius;
+        private final Color fillTop;
+        private final Color fillBottom;
+        private final Color borderColor;
+        private final Color shadowColor;
+
+        public GlassCard(int radius, Color fillTop, Color fillBottom, Color borderColor, Color shadowColor) {
+            this.radius = radius;
+            this.fillTop = fillTop;
+            this.fillBottom = fillBottom;
+            this.borderColor = borderColor;
+            this.shadowColor = shadowColor;
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            // Outer soft drop shadow (layered alpha concentric rings)
+            int shadowSpread = 3;
+            for (int i = 0; i < shadowSpread; i++) {
+                int alpha = Math.max(1, shadowColor.getAlpha() / (i + 1));
+                g2.setColor(new Color(shadowColor.getRed(), shadowColor.getGreen(), shadowColor.getBlue(), alpha));
+                g2.fill(new RoundRectangle2D.Float(i, i + 1, w - i * 2, h - i * 2, radius + 2, radius + 2));
+            }
+
+            // Glass translucent body fill
+            GradientPaint gp = new GradientPaint(0, 0, fillTop, 0, h, fillBottom);
+            g2.setPaint(gp);
+            g2.fill(new RoundRectangle2D.Float(2, 2, w - 5, h - 5, radius, radius));
+
+            // Subtle crisp top/border highlight
+            g2.setColor(borderColor);
+            g2.setStroke(new BasicStroke(1.2f));
+            g2.draw(new RoundRectangle2D.Float(2, 2, w - 5, h - 5, radius, radius));
+
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    /**
+     * GlassButton:
+     * Modern rounded interactive button with clean hover/press transitions.
+     */
+    public static class GlassButton extends JButton {
+        public enum Style {
+            PRIMARY,
+            SECONDARY,
+            HEADER_NAV
+        }
+
+        private final Style style;
+        private boolean isHovered = false;
+        private boolean isPressed = false;
+
+        public GlassButton(String text, Style style) {
+            super(text);
+            this.style = style;
+            setFont(new Font("Segoe UI", Font.BOLD, 12));
+            setOpaque(false);
+            setContentAreaFilled(false);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    isHovered = true;
+                    repaint();
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    isHovered = false;
+                    repaint();
+                }
+
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    isPressed = true;
+                    repaint();
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    isPressed = false;
+                    repaint();
+                }
+            });
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+            int radius = 10;
+
+            Color topColor, bottomColor, textColor, borderColor;
+
+            if (style == Style.PRIMARY) {
+                textColor = Color.WHITE;
+                borderColor = new Color(255, 255, 255, 60);
+                if (isPressed) {
+                    topColor = new Color(30, 64, 175);
+                    bottomColor = new Color(30, 58, 138);
+                } else if (isHovered) {
+                    topColor = new Color(59, 130, 246);
+                    bottomColor = new Color(37, 99, 235);
+                } else {
+                    topColor = new Color(37, 99, 235);
+                    bottomColor = new Color(29, 78, 216);
+                }
+            } else if (style == Style.HEADER_NAV) {
+                textColor = Color.WHITE;
+                borderColor = new Color(255, 255, 255, 70);
+                if (isPressed) {
+                    topColor = new Color(15, 23, 42);
+                    bottomColor = new Color(15, 23, 42);
+                } else if (isHovered) {
+                    topColor = new Color(71, 85, 105);
+                    bottomColor = new Color(51, 65, 85);
+                } else {
+                    topColor = new Color(51, 65, 85);
+                    bottomColor = new Color(30, 41, 59);
+                }
+            } else { // SECONDARY
+                textColor = COLOR_TEXT_MAIN;
+                borderColor = new Color(203, 213, 225);
+                if (isPressed) {
+                    topColor = new Color(226, 232, 240);
+                    bottomColor = new Color(203, 213, 225);
+                } else if (isHovered) {
+                    topColor = new Color(255, 255, 255, 255);
+                    bottomColor = new Color(241, 245, 249, 255);
+                } else {
+                    topColor = new Color(255, 255, 255, 220);
+                    bottomColor = new Color(248, 250, 252, 200);
+                }
+            }
+
+            // Fill button background
+            GradientPaint gp = new GradientPaint(0, 0, topColor, 0, h, bottomColor);
+            g2.setPaint(gp);
+            g2.fill(new RoundRectangle2D.Float(1, 1, w - 2, h - 2, radius, radius));
+
+            // Draw clean subtle border
+            g2.setColor(borderColor);
+            g2.setStroke(new BasicStroke(1.1f));
+            g2.draw(new RoundRectangle2D.Float(1, 1, w - 2, h - 2, radius, radius));
+
+            // Draw centered text
+            g2.setColor(textColor);
+            FontMetrics fm = g2.getFontMetrics(getFont());
+            int textX = (w - fm.stringWidth(getText())) / 2;
+            int textY = (h + fm.getAscent() - fm.getDescent()) / 2;
+            g2.drawString(getText(), textX, textY);
+
+            g2.dispose();
+        }
+    }
+
+    /**
+     * StatusBadge:
+     * Compact pill badge displaying status with colored background and dot indicator.
+     */
+    public static class StatusBadge extends JPanel {
+        public enum Type {
+            SUCCESS,
+            DANGER,
+            INFO,
+            NEUTRAL
+        }
+
+        private String label;
+        private Type type;
+
+        public StatusBadge(String label, Type type) {
+            this.label = label;
+            this.type = type;
+            setOpaque(false);
+            setPreferredSize(new Dimension(110, 24));
+        }
+
+        public void setBadge(String label, Type type) {
+            this.label = label;
+            this.type = type;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            Color bg, fg, dot;
+            switch (type) {
+                case SUCCESS:
+                    bg = new Color(220, 252, 231);
+                    fg = new Color(21, 128, 61);
+                    dot = new Color(22, 163, 74);
+                    break;
+                case DANGER:
+                    bg = new Color(254, 226, 226);
+                    fg = new Color(185, 28, 28);
+                    dot = new Color(220, 38, 38);
+                    break;
+                case INFO:
+                    bg = new Color(224, 242, 254);
+                    fg = new Color(3, 105, 161);
+                    dot = new Color(2, 132, 199);
+                    break;
+                default:
+                    bg = new Color(241, 245, 249);
+                    fg = new Color(71, 85, 105);
+                    dot = new Color(148, 163, 184);
+                    break;
+            }
+
+            // Pill background
+            g2.setColor(bg);
+            g2.fill(new RoundRectangle2D.Float(1, 2, w - 2, h - 4, h - 4, h - 4));
+
+            // Status indicator dot
+            g2.setColor(dot);
+            g2.fillOval(10, (h - 8) / 2, 8, 8);
+
+            // Text
+            g2.setColor(fg);
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            FontMetrics fm = g2.getFontMetrics();
+            int textY = (h + fm.getAscent() - fm.getDescent()) / 2;
+            g2.drawString(label, 24, textY);
+
+            g2.dispose();
+        }
+    }
+
+    /**
+     * ModernGlassTabbedPaneUI:
+     * Custom UI for tabs providing sleek glass pills with blue active accent.
+     */
+    public static class ModernGlassTabbedPaneUI extends BasicTabbedPaneUI {
+        @Override
+        protected void installDefaults() {
+            super.installDefaults();
+            tabInsets = new Insets(8, 16, 8, 16);
+            selectedTabPadInsets = new Insets(0, 0, 0, 0);
+        }
+
+        @Override
+        protected int calculateTabHeight(int tabPlacement, int tabIndex, int fontHeight) {
+            return 36;
+        }
+
+        @Override
+        protected void paintTabArea(Graphics g, int tabPlacement, int selectedIndex) {
+            super.paintTabArea(g, tabPlacement, selectedIndex);
+        }
+
+        @Override
+        protected void paintTabBackground(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            if (isSelected) {
+                // Active Tab: Royal Blue Pill
+                GradientPaint gp = new GradientPaint(x, y, new Color(37, 99, 235), x, y + h, new Color(29, 78, 216));
+                g2.setPaint(gp);
+                g2.fill(new RoundRectangle2D.Float(x + 2, y + 2, w - 4, h - 4, 10, 10));
+            } else {
+                // Inactive Tab: Subtle translucent glass pill
+                g2.setColor(new Color(255, 255, 255, 140));
+                g2.fill(new RoundRectangle2D.Float(x + 2, y + 2, w - 4, h - 4, 10, 10));
+                g2.setColor(new Color(226, 232, 240, 180));
+                g2.draw(new RoundRectangle2D.Float(x + 2, y + 2, w - 4, h - 4, 10, 10));
+            }
+            g2.dispose();
+        }
+
+        @Override
+        protected void paintText(Graphics g, int tabPlacement, Font font, FontMetrics metrics, int tabIndex, String title, Rectangle textRect, boolean isSelected) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g2.setFont(font);
+
+            if (isSelected) {
+                g2.setColor(Color.WHITE);
+            } else {
+                g2.setColor(new Color(71, 85, 105));
+            }
+
+            int textY = textRect.y + metrics.getAscent();
+            g2.drawString(title, textRect.x, textY);
+            g2.dispose();
+        }
+
+        @Override
+        protected void paintTabBorder(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
+            // Handled inside paintTabBackground
+        }
+
+        @Override
+        protected void paintContentBorder(Graphics g, int tabPlacement, int selectedIndex) {
+            // Borderless seamless integration with card container
+        }
+
+        @Override
+        protected void paintFocusIndicator(Graphics g, int tabPlacement, Rectangle[] rects, int tabIndex, Rectangle iconRect, Rectangle textRect, boolean isSelected) {
+            // Suppress default focus rectangle for clean modern aesthetic
+        }
     }
 }
