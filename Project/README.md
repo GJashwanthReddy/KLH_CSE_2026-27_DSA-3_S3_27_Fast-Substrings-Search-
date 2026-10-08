@@ -169,32 +169,40 @@ The project includes an automated test runner (`tests/TestCases.java`) covering 
 
 ---
 
-## 15. Project Structure
+## 15. Submission Directory Structure
 ```
-DSA_Project/
+Fast-Substrings-Search/
 │
-├── src/
-│   ├── SuffixArray.java        # Core DSA: Prefix-Doubling SA Construction
-│   ├── PatternSearch.java      # Binary Search Pattern Matching & Naive Comparison
-│   ├── DocumentReader.java     # Text extraction for .txt & .docx (ZipFile XML DOM)
-│   ├── SearchResult.java       # Container for search status, occurrences, positions, steps
-│   ├── PerformanceMonitor.java # Execution timing and memory profiling
-│   └── Main.java               # Launcher entry point (GUI / CLI / Test Runner / Direct Search)
+├── Project/
+│   ├── src/
+│   │   ├── SuffixArray.java        # Core DSA: Prefix-Doubling SA Construction
+│   │   ├── PatternSearch.java      # Binary Search Pattern Matching & Naive Comparison
+│   │   ├── DocumentReader.java     # Text extraction for .txt & .docx (ZipFile XML DOM)
+│   │   ├── SearchResult.java       # Container for search status, occurrences, positions, steps
+│   │   ├── PerformanceMonitor.java # Execution timing and memory profiling
+│   │   └── Main.java               # Launcher entry point (GUI / CLI / Test Runner / Direct Search)
+│   │
+│   ├── gui/
+│   │   └── SwingApp.java           # Standalone Java Swing GUI Application
+│   │
+│   ├── tests/
+│   │   └── TestCases.java          # Automated suite with 15 test cases
+│   │
+│   ├── sample_documents/
+│   │   ├── sample.txt
+│   │   ├── sample.docx
+│   │   └── sample_research_paper.txt
+│   │
+│   ├── .vscode/                    # VS Code workspace settings, launch & task configs
+│   ├── .gitignore                  # Git ignore rules
+│   ├── bin/                        # Compiled Java class files
+│   └── README.md                   # Technical documentation
 │
-├── gui/
-│   └── SwingApp.java           # Standalone Java Swing GUI Application (5 Interactive Tabs)
-│
-├── tests/
-│   └── TestCases.java          # Automated suite with 15 test cases
-│
-├── sample_documents/
-│   ├── sample.txt
-│   ├── sample.docx
-│   └── sample_research_paper.txt
-│
-├── bin/                        # Compiled Java class files
-├── README.md                   # Complete documentation
-└── PROJECT_REVIEW_NOTES.md     # Java DSA viva review guide & 26 Q&As
+└── Documentation/
+    ├── PBL_PROJECT_REPORT.docx                         # Formal Project Report (DOCX)
+    ├── Fast-Substrings-Search-Using-Suffix-Arrays.pdf  # Project Presentation / Documentation (PDF)
+    ├── Fast-Substrings-Search-Using-Suffix-Arrays.pptx # Project Presentation Slides (PPTX)
+    └── DSA-3_FastSubstringSearch_Project_Abstract.docx # Project Abstract (DOCX)
 ```
 
 ---
@@ -205,7 +213,12 @@ DSA_Project/
 - **Java JDK Version:** Java 8+ (Tested with Java 25 JDK).
 - **Dependencies:** **Zero external dependencies!** Uses standard Java JDK libraries (`java.util`, `java.io`, `java.nio`, `javax.swing`, `javax.xml.parsers`).
 
-### Step 1: Compile the Java Project
+### Step 1: Navigate to the `Project` directory
+```powershell
+cd Project
+```
+
+### Step 2: Compile the Java Project
 ```powershell
 javac -encoding UTF-8 -d bin src/*.java gui/*.java tests/*.java
 ```

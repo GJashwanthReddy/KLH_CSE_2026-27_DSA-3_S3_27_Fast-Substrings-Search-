@@ -242,6 +242,9 @@ public class TestCases {
         {
             long start = System.nanoTime();
             File file = new File("sample_documents/sample_research_paper.txt");
+            if (!file.exists()) {
+                file = new File("Project/sample_documents/sample_research_paper.txt");
+            }
             if (file.exists()) {
                 try {
                     DocumentReader.ReadResult doc = DocumentReader.readFile(file);
@@ -264,6 +267,9 @@ public class TestCases {
         {
             long start = System.nanoTime();
             File file = new File("sample_documents/sample_document.docx");
+            if (!file.exists()) {
+                file = new File("Project/sample_documents/sample_document.docx");
+            }
             if (file.exists()) {
                 try {
                     DocumentReader.ReadResult doc = DocumentReader.readFile(file);

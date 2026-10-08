@@ -635,7 +635,11 @@ public class SwingApp extends JFrame {
     // WORKFLOW TRANSITION LOGIC
     // =============================================================
     private void chooseDocumentFile() {
-        JFileChooser chooser = new JFileChooser(".");
+        File initialDir = new File("sample_documents");
+        if (!initialDir.exists()) {
+            initialDir = new File("Project/sample_documents");
+        }
+        JFileChooser chooser = new JFileChooser(initialDir.exists() ? initialDir : new File("."));
         chooser.setFileFilter(new FileNameExtensionFilter("Text & Word Documents (.txt, .docx)", "txt", "docx"));
         int res = chooser.showOpenDialog(this);
         if (res == JFileChooser.APPROVE_OPTION) {
